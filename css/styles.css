@@ -488,14 +488,18 @@ body {
     box-shadow: 2px 2px 0 var(--black);
 }
 
-/* Add some decorative shapes (neubrutalist love shapes) */
+/* Logo - Neubrutalist style */
 .header::before {
     content: '';
-    width: 24px;
-    height: 24px;
-    background-color: var(--black);
+    width: 40px;
+    height: 40px;
+    background:
+        linear-gradient(135deg, var(--accent) 50%, transparent 50%),
+        linear-gradient(225deg, var(--black) 50%, transparent 50%),
+        var(--white);
     border: 3px solid var(--black);
-    margin-right: 8px;
+    box-shadow: 3px 3px 0 var(--black);
+    margin-right: 12px;
     flex-shrink: 0;
 }
 
