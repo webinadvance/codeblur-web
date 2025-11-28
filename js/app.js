@@ -7,24 +7,33 @@ class CodeBlur {
         this.LEVELS = ['BLUR', 'STEALTH', 'PHANTOM', 'ANON'];
         this.currentLevel = 0;
 
+        // Anonymization style presets
+        this.STYLE_PRESETS = {
+            corporate: {
+                prefixes: ['PERSON', 'ENTITY', 'ORG', 'ITEM', 'NAME', 'ID', 'REF'],
+                comment: 'COMMENT', guid: 'GUID', path: 'PATH', func: 'FUNC', prop: 'PROP', field: 'FIELD'
+            },
+            hacker: {
+                prefixes: ['X0R', 'H4CK', 'PH1SH', 'CR4CK', 'R00T', 'SH3LL', 'BYT3'],
+                comment: 'N0T3', guid: 'H4SH', path: 'L0C', func: 'X3C', prop: 'V4R', field: 'D4T'
+            },
+            military: {
+                prefixes: ['ALPHA', 'BRAVO', 'DELTA', 'ECHO', 'FOXTROT', 'TANGO', 'SIERRA'],
+                comment: 'INTEL', guid: 'TARGET', path: 'COORD', func: 'OP', prop: 'ASSET', field: 'RECON'
+            },
+            minimal: {
+                prefixes: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+                comment: 'CMT', guid: 'UID', path: 'PTH', func: 'FN', prop: 'P', field: 'F'
+            }
+        };
+
+        // Current style (default: minimal)
+        this.currentStyle = 'minimal';
+
         // Mappings storage
         this.mappings = {};
-        this.counters = {
-            PERSON: 0,
-            ENTITY: 0,
-            ORG: 0,
-            ITEM: 0,
-            NAME: 0,
-            ID: 0,
-            REF: 0,
-            GUID: 0,
-            COMMENT: 0,
-            BODY: 0,
-            PATH: 0,
-            FUNC: 0,
-            PROP: 0,
-            FIELD: 0
-        };
+        this.counters = {};
+        this.initCounters();
 
         // Undo history
         this.undoStack = [];
@@ -41,12 +50,10 @@ class CodeBlur {
         this.codeHighlight = document.getElementById('codeHighlight');
         this.blurBtn = document.getElementById('blurBtn');
         this.clearBtn = document.getElementById('clearBtn');
+        this.anonStyleSelect = document.getElementById('anonStyle');
 
         // Track original text for percentage calculation
         this.originalText = '';
-
-        // Identifier prefixes for generated names
-        this.prefixes = ['PERSON', 'ENTITY', 'ORG', 'ITEM', 'NAME', 'ID', 'REF'];
 
         // Skip list for member anonymization
         this.skipMethods = new Set([
@@ -69,7 +76,31 @@ class CodeBlur {
         this.init();
     }
 
+    initCounters() {
+        // Initialize counters for current style
+        const style = this.STYLE_PRESETS[this.currentStyle];
+        this.counters = {};
+        style.prefixes.forEach(p => this.counters[p] = 0);
+        this.counters[style.comment] = 0;
+        this.counters[style.guid] = 0;
+        this.counters[style.path] = 0;
+        this.counters[style.func] = 0;
+        this.counters[style.prop] = 0;
+        this.counters[style.field] = 0;
+    }
+
+    getStyle() {
+        return this.STYLE_PRESETS[this.currentStyle];
+    }
+
+    getPrefixes() {
+        return this.getStyle().prefixes;
+    }
+
     init() {
+        // Load style from localStorage
+        this.loadStyle();
+
         // Load mappings from localStorage
         this.loadMappings();
 
@@ -80,6 +111,19 @@ class CodeBlur {
         this.updateMappingCount();
     }
 
+    loadStyle() {
+        const savedStyle = localStorage.getItem('codeblur_style');
+        if (savedStyle && this.STYLE_PRESETS[savedStyle]) {
+            this.currentStyle = savedStyle;
+            this.anonStyleSelect.value = savedStyle;
+        }
+        this.initCounters();
+    }
+
+    saveStyle() {
+        localStorage.setItem('codeblur_style', this.currentStyle);
+    }
+
     setupEventListeners() {
         // Main buttons
         document.getElementById('copyCloseBtn').addEventListener('click', () => this.copyAndClose());
@@ -88,6 +132,14 @@ class CodeBlur {
         document.getElementById('clearBtn').addEventListener('click', () => this.handleClear());
         document.getElementById('obfuscateStringsBtn').addEventListener('click', () => this.obfuscateStringsOnly());
         document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+
+        // Style selector
+        this.anonStyleSelect.addEventListener('change', (e) => {
+            this.currentStyle = e.target.value;
+            this.initCounters();
+            this.saveStyle();
+            this.showToast(`Style: ${this.currentStyle.toUpperCase()}`, 'info');
+        });
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -297,8 +349,10 @@ class CodeBlur {
             }
         }
 
-        // Generate new identifier
-        const prefix = this.prefixes[this.counters.PERSON % this.prefixes.length];
+        // Generate new identifier using current style
+        const prefixes = this.getPrefixes();
+        const totalMappings = Object.keys(this.mappings).length;
+        const prefix = prefixes[totalMappings % prefixes.length];
         this.counters[prefix] = (this.counters[prefix] || 0) + 1;
         const newId = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
 
@@ -307,7 +361,19 @@ class CodeBlur {
     }
 
     isObfuscatedIdentifier(word) {
-        const pattern = /^(PERSON|ENTITY|ORG|ITEM|NAME|ID|REF|GUID|COMMENT|BODY|PATH|FUNC|PROP|FIELD)\d+$/;
+        // Build pattern from all style prefixes
+        const allPrefixes = new Set();
+        Object.values(this.STYLE_PRESETS).forEach(style => {
+            style.prefixes.forEach(p => allPrefixes.add(p));
+            allPrefixes.add(style.comment);
+            allPrefixes.add(style.guid);
+            allPrefixes.add(style.path);
+            allPrefixes.add(style.func);
+            allPrefixes.add(style.prop);
+            allPrefixes.add(style.field);
+        });
+        const prefixPattern = Array.from(allPrefixes).join('|');
+        const pattern = new RegExp(`^(${prefixPattern})\\d+$`);
         return pattern.test(word);
     }
 
@@ -389,9 +455,10 @@ class CodeBlur {
             return this.mappings[trimmed];
         }
 
-        // Generate new COMMENT identifier
-        this.counters.COMMENT++;
-        const placeholder = `COMMENT${String(this.counters.COMMENT).padStart(3, '0')}`;
+        // Generate new comment identifier using current style
+        const prefix = this.getStyle().comment;
+        this.counters[prefix] = (this.counters[prefix] || 0) + 1;
+        const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
         this.mappings[trimmed] = placeholder;
         return placeholder;
     }
@@ -453,7 +520,8 @@ class CodeBlur {
         if (this.mappings[content]) {
             obfuscated = this.mappings[content];
         } else {
-            const prefix = this.prefixes[Math.floor(Math.random() * this.prefixes.length)];
+            const prefixes = this.getPrefixes();
+            const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
             this.counters[prefix] = (this.counters[prefix] || 0) + 1;
             obfuscated = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
             this.mappings[content] = obfuscated;
@@ -474,6 +542,7 @@ class CodeBlur {
 
     obfuscateGuids() {
         let text = this.editor.value;
+        const prefix = this.getStyle().guid;
 
         // Standard GUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
         const guidPattern = /\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}?/g;
@@ -482,8 +551,8 @@ class CodeBlur {
             if (this.mappings[match]) {
                 return this.mappings[match];
             }
-            this.counters.GUID++;
-            const placeholder = `GUID${String(this.counters.GUID).padStart(3, '0')}`;
+            this.counters[prefix] = (this.counters[prefix] || 0) + 1;
+            const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
             this.mappings[match] = placeholder;
             return placeholder;
         });
@@ -496,8 +565,8 @@ class CodeBlur {
             if (this.mappings[match]) {
                 return this.mappings[match];
             }
-            this.counters.GUID++;
-            const placeholder = `GUID${String(this.counters.GUID).padStart(3, '0')}`;
+            this.counters[prefix] = (this.counters[prefix] || 0) + 1;
+            const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
             this.mappings[match] = placeholder;
             return placeholder;
         });
@@ -541,8 +610,9 @@ class CodeBlur {
         if (this.mappings[path]) {
             return this.mappings[path];
         }
-        this.counters.PATH++;
-        const placeholder = `PATH${String(this.counters.PATH).padStart(3, '0')}`;
+        const prefix = this.getStyle().path;
+        this.counters[prefix] = (this.counters[prefix] || 0) + 1;
+        const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
         this.mappings[path] = placeholder;
         return placeholder;
     }
@@ -614,8 +684,9 @@ class CodeBlur {
         if (this.mappings[name]) {
             return this.mappings[name];
         }
-        this.counters.FUNC++;
-        const placeholder = `FUNC${String(this.counters.FUNC).padStart(3, '0')}`;
+        const prefix = this.getStyle().func;
+        this.counters[prefix] = (this.counters[prefix] || 0) + 1;
+        const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
         this.mappings[name] = placeholder;
         return placeholder;
     }
@@ -624,8 +695,9 @@ class CodeBlur {
         if (this.mappings[name]) {
             return this.mappings[name];
         }
-        this.counters.PROP++;
-        const placeholder = `PROP${String(this.counters.PROP).padStart(3, '0')}`;
+        const prefix = this.getStyle().prop;
+        this.counters[prefix] = (this.counters[prefix] || 0) + 1;
+        const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
         this.mappings[name] = placeholder;
         return placeholder;
     }
@@ -634,8 +706,9 @@ class CodeBlur {
         if (this.mappings[name]) {
             return this.mappings[name];
         }
-        this.counters.FIELD++;
-        const placeholder = `FIELD${String(this.counters.FIELD).padStart(3, '0')}`;
+        const prefix = this.getStyle().field;
+        this.counters[prefix] = (this.counters[prefix] || 0) + 1;
+        const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
         this.mappings[name] = placeholder;
         return placeholder;
     }
@@ -906,10 +979,7 @@ class CodeBlur {
     clearAll() {
         this.saveUndoState();
         this.mappings = {};
-        this.counters = {
-            PERSON: 0, ENTITY: 0, ORG: 0, ITEM: 0, NAME: 0, ID: 0, REF: 0,
-            GUID: 0, COMMENT: 0, BODY: 0, PATH: 0, FUNC: 0, PROP: 0, FIELD: 0
-        };
+        this.initCounters();
         this.currentLevel = 0;
         this.editor.value = '';
         this.updateLevelDisplay();
@@ -988,9 +1058,19 @@ class CodeBlur {
             return 0;
         }
 
-        // Count obfuscated tokens in current text
-        // Matches each segment: PERSON001, NAME089, ENTITY054, etc.
-        const obfuscatedPattern = /(PERSON|ENTITY|ORG|ITEM|NAME|ID|REF|GUID|COMMENT|BODY|PATH|FUNC|PROP|FIELD)\d+/g;
+        // Build pattern from all style prefixes
+        const allPrefixes = new Set();
+        Object.values(this.STYLE_PRESETS).forEach(style => {
+            style.prefixes.forEach(p => allPrefixes.add(p));
+            allPrefixes.add(style.comment);
+            allPrefixes.add(style.guid);
+            allPrefixes.add(style.path);
+            allPrefixes.add(style.func);
+            allPrefixes.add(style.prop);
+            allPrefixes.add(style.field);
+        });
+        const prefixPattern = Array.from(allPrefixes).join('|');
+        const obfuscatedPattern = new RegExp(`(${prefixPattern})\\d+`, 'g');
         const obfuscatedMatches = currentText.match(obfuscatedPattern) || [];
 
         // Count all identifier-like tokens (words with 2+ chars)
@@ -1021,9 +1101,19 @@ class CodeBlur {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
 
-        // Highlight each obfuscated segment (PERSON001, NAME089, ENTITY054, etc.)
-        // This catches them even when combined like NAME217NAME091
-        const obfuscatedPattern = /(PERSON|ENTITY|ORG|ITEM|NAME|ID|REF|GUID|COMMENT|BODY|PATH|FUNC|PROP|FIELD)\d+/g;
+        // Build pattern from all style prefixes
+        const allPrefixes = new Set();
+        Object.values(this.STYLE_PRESETS).forEach(style => {
+            style.prefixes.forEach(p => allPrefixes.add(p));
+            allPrefixes.add(style.comment);
+            allPrefixes.add(style.guid);
+            allPrefixes.add(style.path);
+            allPrefixes.add(style.func);
+            allPrefixes.add(style.prop);
+            allPrefixes.add(style.field);
+        });
+        const prefixPattern = Array.from(allPrefixes).join('|');
+        const obfuscatedPattern = new RegExp(`(${prefixPattern})\\d+`, 'g');
         html = html.replace(obfuscatedPattern, '<span class="obfuscated">$&</span>');
 
         // Add extra line at end to match textarea behavior

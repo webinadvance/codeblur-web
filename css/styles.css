@@ -196,6 +196,54 @@ body {
 }
 
 /* ============================================
+   STYLE SELECTOR - Neubrutalist Dropdown
+   ============================================ */
+.dropdown {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 8px 10px;
+    padding-right: 26px;
+    margin-left: auto;
+    border: 2px solid var(--black);
+    background-color: var(--white);
+    color: var(--black);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 2px 2px 0 var(--black);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 12 12'%3E%3Cpath fill='%23000' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.dropdown:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--black);
+    background-color: var(--accent);
+}
+
+.dropdown:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+}
+
+.dropdown:focus {
+    outline: none;
+    background-color: var(--accent);
+}
+
+.dropdown option {
+    background-color: var(--white);
+    color: var(--black);
+    padding: 8px;
+}
+
+/* ============================================
    LEVEL INDICATOR - Card style
    ============================================ */
 .level-indicator {
