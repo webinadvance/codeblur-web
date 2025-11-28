@@ -51,6 +51,7 @@ class CodeBlur {
         this.blurBtn = document.getElementById('blurBtn');
         this.clearBtn = document.getElementById('clearBtn');
         this.anonStyleSelect = document.getElementById('anonStyle');
+        this.tokenCount = document.getElementById('tokenCount');
 
         // Track original text for percentage calculation
         this.originalText = '';
@@ -109,6 +110,7 @@ class CodeBlur {
 
         // Update UI
         this.updateMappingCount();
+        this.updateTokenCount();
     }
 
     loadStyle() {
@@ -170,10 +172,11 @@ class CodeBlur {
             }, 0);
         });
 
-        // Update percentage and highlighting on input
+        // Update percentage, highlighting, and token count on input
         this.editor.addEventListener('input', () => {
             this.updateObfuscationPercent();
             this.updateHighlighting();
+            this.updateTokenCount();
         });
 
         // Sync scroll between textarea and highlight div
@@ -1103,6 +1106,55 @@ class CodeBlur {
         const percent = this.calculateObfuscationPercent();
         this.obfuscationPercent.textContent = `${percent}%`;
         this.meterFill.style.width = `${percent}%`;
+    }
+
+    countTokens(text) {
+        // LLM-style token counting approximation
+        // Based on GPT tokenization patterns (roughly 4 chars per token on average)
+        if (!text || text.trim() === '') {
+            return 0;
+        }
+
+        let tokens = 0;
+
+        // Split into chunks: words, numbers, punctuation, whitespace
+        const chunks = text.match(/\s+|[a-zA-Z_][a-zA-Z0-9_]*|\d+\.?\d*|[^\s\w]/g) || [];
+
+        for (const chunk of chunks) {
+            if (/^\s+$/.test(chunk)) {
+                // Whitespace: count newlines and spaces separately
+                const newlines = (chunk.match(/\n/g) || []).length;
+                tokens += newlines; // Each newline is typically a token
+                // Spaces between words are usually merged with next token
+            } else if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(chunk)) {
+                // Words: roughly 1 token per 4 characters, minimum 1
+                // Common short words (the, is, a, to) are 1 token
+                // Longer words get split into subwords
+                if (chunk.length <= 4) {
+                    tokens += 1;
+                } else if (chunk.length <= 8) {
+                    tokens += 2;
+                } else if (chunk.length <= 12) {
+                    tokens += 3;
+                } else {
+                    tokens += Math.ceil(chunk.length / 4);
+                }
+            } else if (/^\d+\.?\d*$/.test(chunk)) {
+                // Numbers: each digit or small number is roughly 1 token
+                tokens += Math.ceil(chunk.length / 2);
+            } else {
+                // Punctuation and special chars: usually 1 token each
+                tokens += 1;
+            }
+        }
+
+        return tokens;
+    }
+
+    updateTokenCount() {
+        const text = this.editor.value;
+        const tokens = this.countTokens(text);
+        this.tokenCount.textContent = tokens.toLocaleString();
     }
 
     updateHighlighting() {
