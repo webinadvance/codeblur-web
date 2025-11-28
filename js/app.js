@@ -36,11 +36,16 @@ class CodeBlur {
 
         // DOM elements
         this.editor = document.getElementById('codeEditor');
-        this.levelBadge = document.getElementById('currentLevel');
         this.statusMessage = document.getElementById('statusMessage');
         this.mappingCount = document.getElementById('mappingCount');
+        this.obfuscationPercent = document.getElementById('obfuscationPercent');
+        this.meterFill = document.getElementById('meterFill');
+        this.codeHighlight = document.getElementById('codeHighlight');
         this.blurBtn = document.getElementById('blurBtn');
         this.clearBtn = document.getElementById('clearBtn');
+
+        // Track original text for percentage calculation
+        this.originalText = '';
 
         // Identifier prefixes for generated names
         this.prefixes = ['PERSON', 'ENTITY', 'ORG', 'ITEM', 'NAME', 'ID', 'REF'];
@@ -85,7 +90,6 @@ class CodeBlur {
         document.getElementById('deobfuscateBtn').addEventListener('click', () => this.deobfuscate());
         document.getElementById('clearBtn').addEventListener('click', () => this.handleClear());
         document.getElementById('obfuscateStringsBtn').addEventListener('click', () => this.obfuscateStringsOnly());
-        document.getElementById('removeCommentsBtn').addEventListener('click', () => this.removeCommentsOnly());
         document.getElementById('undoBtn').addEventListener('click', () => this.undo());
 
         // Keyboard shortcuts
@@ -100,10 +104,33 @@ class CodeBlur {
             }
         });
 
-        // Paste handler
+        // Paste handler - reset to BLUR level for new content
         this.editor.addEventListener('paste', (e) => {
             this.saveUndoState();
+            // Reset to BLUR level for new content
+            this.currentLevel = 0;
+            this.updateLevelDisplay();
+            // Update percentage and highlighting after paste
+            setTimeout(() => {
+                this.updateObfuscationPercent();
+                this.updateHighlighting();
+            }, 0);
         });
+
+        // Update percentage and highlighting on input
+        this.editor.addEventListener('input', () => {
+            this.updateObfuscationPercent();
+            this.updateHighlighting();
+        });
+
+        // Sync scroll between textarea and highlight div
+        this.editor.addEventListener('scroll', () => {
+            this.codeHighlight.scrollTop = this.editor.scrollTop;
+            this.codeHighlight.scrollLeft = this.editor.scrollLeft;
+        });
+
+        // Initial highlighting
+        this.updateHighlighting();
     }
 
     // ============================================
@@ -111,6 +138,12 @@ class CodeBlur {
     // ============================================
 
     applyNextLevel() {
+        // Check if all levels completed
+        if (this.currentLevel >= this.LEVELS.length) {
+            this.showToast('All levels complete! Paste new code to start over.', 'info');
+            return;
+        }
+
         this.saveUndoState();
         const levelName = this.LEVELS[this.currentLevel];
 
@@ -135,18 +168,23 @@ class CodeBlur {
                 break;
         }
 
-        // Advance to next level (cycle)
-        this.currentLevel = (this.currentLevel + 1) % this.LEVELS.length;
+        // Advance to next level
+        this.currentLevel++;
         this.updateLevelDisplay();
         this.saveMappings();
         this.updateMappingCount();
+        this.updateObfuscationPercent();
+        this.updateHighlighting();
         this.showToast(`Applied ${levelName} level`, 'success');
     }
 
     updateLevelDisplay() {
-        const nextLevel = this.LEVELS[this.currentLevel];
-        this.blurBtn.textContent = nextLevel;
-        this.levelBadge.textContent = nextLevel;
+        if (this.currentLevel >= this.LEVELS.length) {
+            this.blurBtn.textContent = '0xDEAD';
+        } else {
+            const nextLevel = this.LEVELS[this.currentLevel];
+            this.blurBtn.textContent = nextLevel;
+        }
     }
 
     // ============================================
@@ -427,6 +465,8 @@ class CodeBlur {
         this.obfuscateStrings();
         this.saveMappings();
         this.updateMappingCount();
+        this.updateObfuscationPercent();
+        this.updateHighlighting();
         this.showToast('Strings obfuscated', 'success');
     }
 
@@ -743,6 +783,8 @@ class CodeBlur {
 
         this.editor.value = text;
         this.updateStatus('Deobfuscated');
+        this.updateObfuscationPercent();
+        this.updateHighlighting();
         this.showToast('Text deobfuscated', 'success');
     }
 
@@ -778,6 +820,8 @@ class CodeBlur {
 
         this.updateLevelDisplay();
         this.updateMappingCount();
+        this.updateObfuscationPercent();
+        this.updateHighlighting();
         this.saveMappings();
         this.showToast('Undo successful', 'success');
     }
@@ -826,6 +870,8 @@ class CodeBlur {
         this.updateLevelDisplay();
         this.saveMappings();
         this.updateMappingCount();
+        this.updateObfuscationPercent();
+        this.updateHighlighting();
         this.showToast('All mappings cleared', 'success');
     }
 
@@ -888,6 +934,58 @@ class CodeBlur {
     updateMappingCount() {
         const count = Object.keys(this.mappings).length;
         this.mappingCount.textContent = `Mappings: ${count}`;
+    }
+
+    calculateObfuscationPercent() {
+        const currentText = this.editor.value;
+
+        // If no text, return 0
+        if (!currentText || currentText.trim() === '') {
+            return 0;
+        }
+
+        // Count obfuscated tokens in current text
+        // Matches each segment: PERSON001, NAME089, ENTITY054, etc.
+        const obfuscatedPattern = /(PERSON|ENTITY|ORG|ITEM|NAME|ID|REF|GUID|COMMENT|BODY|PATH|FUNC|PROP|FIELD)\d+/g;
+        const obfuscatedMatches = currentText.match(obfuscatedPattern) || [];
+
+        // Count all identifier-like tokens (words with 2+ chars)
+        const allIdentifiersPattern = /\b[a-zA-Z_][a-zA-Z0-9_]{1,}\b/g;
+        const allMatches = currentText.match(allIdentifiersPattern) || [];
+
+        if (allMatches.length === 0) {
+            return 0;
+        }
+
+        // Calculate percentage based on ratio of obfuscated tokens
+        const percent = Math.round((obfuscatedMatches.length / allMatches.length) * 100);
+        return Math.min(percent, 100); // Cap at 100%
+    }
+
+    updateObfuscationPercent() {
+        const percent = this.calculateObfuscationPercent();
+        this.obfuscationPercent.textContent = `${percent}%`;
+        this.meterFill.style.width = `${percent}%`;
+    }
+
+    updateHighlighting() {
+        const text = this.editor.value;
+
+        // Escape HTML entities
+        let html = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        // Highlight each obfuscated segment (PERSON001, NAME089, ENTITY054, etc.)
+        // This catches them even when combined like NAME217NAME091
+        const obfuscatedPattern = /(PERSON|ENTITY|ORG|ITEM|NAME|ID|REF|GUID|COMMENT|BODY|PATH|FUNC|PROP|FIELD)\d+/g;
+        html = html.replace(obfuscatedPattern, '<span class="obfuscated">$&</span>');
+
+        // Add extra line at end to match textarea behavior
+        html += '\n';
+
+        this.codeHighlight.innerHTML = html;
     }
 
     showToast(message, type = 'success') {
