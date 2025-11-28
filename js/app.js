@@ -104,14 +104,15 @@ class CodeBlur {
             }
         });
 
-        // Paste handler - reset to BLUR level for new content
+        // Paste handler - auto-apply existing mappings to new content
         this.editor.addEventListener('paste', (e) => {
             this.saveUndoState();
             // Reset to BLUR level for new content
             this.currentLevel = 0;
             this.updateLevelDisplay();
-            // Update percentage and highlighting after paste
+            // Auto-apply existing mappings after paste
             setTimeout(() => {
+                this.applyExistingMappings();
                 this.updateObfuscationPercent();
                 this.updateHighlighting();
             }, 0);
@@ -765,6 +766,34 @@ class CodeBlur {
     }
 
     // ============================================
+    // AUTO-APPLY EXISTING MAPPINGS
+    // ============================================
+
+    applyExistingMappings() {
+        if (Object.keys(this.mappings).length === 0) return;
+
+        let text = this.editor.value;
+
+        // Apply existing mappings to new text
+        // Sort by length (longest first) to avoid partial replacements
+        const sortedMappings = Object.entries(this.mappings)
+            .sort((a, b) => b[0].length - a[0].length);
+
+        for (const [original, obfuscated] of sortedMappings) {
+            // Skip if this is a comment, body, or other non-identifier mapping
+            if (original.startsWith('//') || original.startsWith('/*') ||
+                original.startsWith('#') || original.startsWith('--') ||
+                original.includes('\n')) {
+                continue;
+            }
+            text = this.replaceWholeWord(text, original, obfuscated);
+        }
+
+        this.editor.value = text;
+        this.updateMappingCount();
+    }
+
+    // ============================================
     // DEOBFUSCATION
     // ============================================
 
@@ -772,14 +801,25 @@ class CodeBlur {
         this.saveUndoState();
         let text = this.editor.value;
 
-        // Sort mappings by length (longest first) to avoid partial replacements
+        // Sort mappings by obfuscated value length (longest first) to avoid partial replacements
         const sortedMappings = Object.entries(this.mappings)
             .sort((a, b) => b[1].length - a[1].length);
 
-        // Replace obfuscated values with originals
-        for (const [original, obfuscated] of sortedMappings) {
-            text = this.replaceWholeWord(text, obfuscated, original);
-        }
+        // Keep replacing until no more changes (handles nested/combined obfuscations)
+        let prevText;
+        let passes = 0;
+        const maxPasses = 10; // Safety limit
+
+        do {
+            prevText = text;
+            for (const [original, obfuscated] of sortedMappings) {
+                // Escape special regex characters in obfuscated string
+                const escaped = obfuscated.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(escaped, 'g');
+                text = text.replace(regex, original);
+            }
+            passes++;
+        } while (text !== prevText && passes < maxPasses);
 
         this.editor.value = text;
         this.updateStatus('Deobfuscated');
@@ -837,16 +877,17 @@ class CodeBlur {
             this.clearConfirmPending = false;
             this.clearBtn.textContent = 'CLEAR';
             this.clearBtn.classList.remove('btn-danger');
-            this.clearBtn.classList.add('btn-secondary');
+            this.clearBtn.classList.add('btn-gray-light');
             if (this.clearTimeout) {
                 clearTimeout(this.clearTimeout);
                 this.clearTimeout = null;
             }
         } else {
-            // First click - show confirmation
+            // First click - show confirmation with mapping count
             this.clearConfirmPending = true;
-            this.clearBtn.textContent = 'CONFIRM?';
-            this.clearBtn.classList.remove('btn-secondary');
+            const count = Object.keys(this.mappings).length;
+            this.clearBtn.textContent = `CLEAR ${count}?`;
+            this.clearBtn.classList.remove('btn-gray-light');
             this.clearBtn.classList.add('btn-danger');
 
             // Reset after 3 seconds
@@ -854,7 +895,7 @@ class CodeBlur {
                 this.clearConfirmPending = false;
                 this.clearBtn.textContent = 'CLEAR';
                 this.clearBtn.classList.remove('btn-danger');
-                this.clearBtn.classList.add('btn-secondary');
+                this.clearBtn.classList.add('btn-gray-light');
             }, 3000);
         }
     }
@@ -867,12 +908,13 @@ class CodeBlur {
             GUID: 0, COMMENT: 0, BODY: 0, PATH: 0, FUNC: 0, PROP: 0, FIELD: 0
         };
         this.currentLevel = 0;
+        this.editor.value = '';
         this.updateLevelDisplay();
         this.saveMappings();
         this.updateMappingCount();
         this.updateObfuscationPercent();
         this.updateHighlighting();
-        this.showToast('All mappings cleared', 'success');
+        this.showToast('All cleared', 'success');
     }
 
     // ============================================
@@ -934,6 +976,10 @@ class CodeBlur {
     updateMappingCount() {
         const count = Object.keys(this.mappings).length;
         this.mappingCount.textContent = `Mappings: ${count}`;
+        // Update clear button with count (if not in confirm state)
+        if (!this.clearConfirmPending) {
+            this.clearBtn.textContent = `CLEAR (${count})`;
+        }
     }
 
     calculateObfuscationPercent() {

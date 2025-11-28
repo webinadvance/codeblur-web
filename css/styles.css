@@ -182,6 +182,7 @@ body {
 .btn-gray-dark {
     background-color: var(--gray-dark);
     color: var(--white);
+    border: 3px solid var(--accent);
 }
 
 .btn-gray-mid {
@@ -192,6 +193,11 @@ body {
 .btn-gray-light {
     background-color: var(--gray-light);
     color: var(--black);
+}
+
+.btn-danger {
+    background-color: #8B0000;
+    color: var(--white);
 }
 
 /* ============================================
