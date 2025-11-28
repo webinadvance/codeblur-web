@@ -182,6 +182,19 @@ class CodeBlur {
             this.codeHighlight.scrollLeft = this.editor.scrollLeft;
         });
 
+        // Click on highlight div focuses textarea (for non-word clicks)
+        this.codeHighlight.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('clickable-word')) {
+                this.editor.focus();
+            }
+        });
+
+        // Sync scroll from highlight div to textarea
+        this.codeHighlight.addEventListener('scroll', () => {
+            this.editor.scrollTop = this.codeHighlight.scrollTop;
+            this.editor.scrollLeft = this.codeHighlight.scrollLeft;
+        });
+
         // Initial highlighting
         this.updateHighlighting();
     }
@@ -1114,12 +1127,60 @@ class CodeBlur {
         });
         const prefixPattern = Array.from(allPrefixes).join('|');
         const obfuscatedPattern = new RegExp(`(${prefixPattern})\\d+`, 'g');
-        html = html.replace(obfuscatedPattern, '<span class="obfuscated">$&</span>');
+
+        // Wrap identifiers as clickable spans (before adding obfuscated spans)
+        // Match word boundaries but skip HTML entities like &lt; &gt; &amp;
+        html = html.replace(/\b([a-zA-Z_][a-zA-Z0-9_]{1,})\b/g, (match, word) => {
+            // Skip HTML entity parts
+            if (['lt', 'gt', 'amp', 'quot', 'nbsp'].includes(word)) {
+                return match;
+            }
+            // Skip if it's an obfuscated identifier
+            if (obfuscatedPattern.test(word)) {
+                obfuscatedPattern.lastIndex = 0;
+                return `<span class="obfuscated">${word}</span>`;
+            }
+            return `<span class="clickable-word" data-word="${word}">${word}</span>`;
+        });
 
         // Add extra line at end to match textarea behavior
         html += '\n';
 
         this.codeHighlight.innerHTML = html;
+
+        // Add click handlers to clickable words
+        this.codeHighlight.querySelectorAll('.clickable-word').forEach(span => {
+            span.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.obfuscateWord(span.dataset.word);
+            });
+        });
+    }
+
+    obfuscateWord(word) {
+        if (!word || word.length < 2) return;
+
+        // Skip if already obfuscated
+        if (this.isObfuscatedIdentifier(word)) return;
+
+        // Skip if it's a known word (optional - remove if you want to obfuscate anything)
+        // if (Dictionaries.isKnownWord(word)) return;
+
+        this.saveUndoState();
+
+        // Get or create mapping for this word
+        const obfuscated = this.getOrCreateMapping(word);
+
+        // Replace all occurrences in the editor
+        let text = this.editor.value;
+        text = this.replaceWholeWord(text, word, obfuscated);
+        this.editor.value = text;
+
+        this.saveMappings();
+        this.updateMappingCount();
+        this.updateObfuscationPercent();
+        this.updateHighlighting();
+        this.showToast(`${word} → ${obfuscated}`, 'success');
     }
 
     showToast(message, type = 'success') {

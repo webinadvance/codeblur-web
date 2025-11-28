@@ -311,7 +311,7 @@ body {
     white-space: pre-wrap;
     word-wrap: break-word;
     overflow: auto;
-    pointer-events: none;
+    pointer-events: auto;
 }
 
 .code-highlight .obfuscated {
@@ -320,6 +320,18 @@ body {
     padding: 1px 4px;
     border: 2px solid var(--black);
     font-weight: 700;
+}
+
+.code-highlight .clickable-word {
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background-color 0.1s, color 0.1s;
+    pointer-events: auto;
+}
+
+.code-highlight .clickable-word:hover {
+    background-color: var(--gray-dark);
+    color: var(--white);
 }
 
 #codeEditor {
@@ -336,7 +348,12 @@ body {
     caret-color: var(--black);
     resize: vertical;
     outline: none;
-    z-index: 1;
+    z-index: 2;
+    pointer-events: none;
+}
+
+#codeEditor:focus {
+    pointer-events: auto;
 }
 
 #codeEditor::placeholder {
