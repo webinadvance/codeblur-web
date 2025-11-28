@@ -59,6 +59,7 @@ body {
     color: var(--black);
     min-height: 100vh;
     padding: 24px;
+    overflow: hidden;
 }
 
 .container {
@@ -88,14 +89,8 @@ body {
     text-transform: uppercase;
 }
 
-.version {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    font-weight: 700;
-    padding: 6px 12px;
-    background-color: var(--black);
-    color: var(--white);
-    border: 2px solid var(--black);
+.version-year {
+    color: var(--accent);
 }
 
 .github-link {
@@ -307,32 +302,6 @@ body {
 }
 
 /* ============================================
-   STATUS BAR - Inverted colors, bold
-   ============================================ */
-.status-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 20px;
-    background-color: var(--black);
-    color: var(--white);
-    font-size: 0.9rem;
-    font-weight: 700;
-    margin-bottom: 24px;
-    border: var(--border);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-#statusMessage {
-    color: var(--accent);
-}
-
-#mappingCount {
-    color: var(--accent);
-}
-
-/* ============================================
    OBFUSCATION METER - Neubrutalist Progress Bar
    ============================================ */
 .obfuscation-meter {
@@ -400,52 +369,6 @@ body {
     color: var(--accent);
     border: var(--border);
     box-shadow: var(--shadow);
-}
-
-/* ============================================
-   INFO PANEL - Card with colored background
-   ============================================ */
-.info-panel {
-    padding: 24px;
-    border: var(--border);
-    background-color: var(--white);
-    box-shadow: var(--shadow);
-}
-
-.info-panel h3 {
-    font-family: var(--font-display);
-    font-size: 1.3rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: var(--border);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.level-list {
-    list-style: none;
-    display: grid;
-    gap: 8px;
-}
-
-.level-list li {
-    padding: 12px 16px;
-    background-color: var(--bg-card);
-    border: 2px solid var(--black);
-    box-shadow: 3px 3px 0 var(--black);
-    font-size: 0.9rem;
-}
-
-.level-list li:nth-child(1) strong { color: var(--accent); }
-.level-list li:nth-child(2) strong { color: var(--gray-dark); }
-.level-list li:nth-child(3) strong { color: var(--gray-mid); }
-.level-list li:nth-child(4) strong { color: var(--gray-dark); }
-.level-list li:nth-child(5) strong { color: var(--black); }
-
-.level-list strong {
-    font-weight: 700;
-    text-transform: uppercase;
 }
 
 /* ============================================
@@ -594,7 +517,6 @@ body {
     }
 
     #codeEditor {
-        height: 350px;
         font-size: 12px;
     }
 
@@ -602,14 +524,6 @@ body {
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
-    }
-
-    .info-panel {
-        padding: 16px;
-    }
-
-    .level-list li {
-        font-size: 0.8rem;
     }
 }
 

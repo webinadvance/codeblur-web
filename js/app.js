@@ -4,7 +4,7 @@
 class CodeBlur {
     constructor() {
         // Obfuscation levels
-        this.LEVELS = ['BLUR', 'STEALTH', 'PHANTOM', 'ANON', 'SKELETON'];
+        this.LEVELS = ['BLUR', 'STEALTH', 'PHANTOM', 'ANON'];
         this.currentLevel = 0;
 
         // Mappings storage
@@ -36,8 +36,6 @@ class CodeBlur {
 
         // DOM elements
         this.editor = document.getElementById('codeEditor');
-        this.statusMessage = document.getElementById('statusMessage');
-        this.mappingCount = document.getElementById('mappingCount');
         this.obfuscationPercent = document.getElementById('obfuscationPercent');
         this.meterFill = document.getElementById('meterFill');
         this.codeHighlight = document.getElementById('codeHighlight');
@@ -80,7 +78,6 @@ class CodeBlur {
 
         // Update UI
         this.updateMappingCount();
-        this.updateStatus('Ready');
     }
 
     setupEventListeners() {
@@ -115,6 +112,9 @@ class CodeBlur {
                 this.applyExistingMappings();
                 this.updateObfuscationPercent();
                 this.updateHighlighting();
+                // Scroll to top
+                this.editor.scrollTop = 0;
+                this.codeHighlight.scrollTop = 0;
             }, 0);
         });
 
@@ -164,9 +164,6 @@ class CodeBlur {
             case 'ANON':
                 this.anonymizeMembers();
                 break;
-            case 'SKELETON':
-                this.removeFunctionBodies();
-                break;
         }
 
         // Advance to next level
@@ -214,6 +211,9 @@ class CodeBlur {
             // Skip if already obfuscated
             if (this.isObfuscatedIdentifier(identifier)) continue;
 
+            // First check if the whole identifier is known (e.g., "EntityFrameworkCore")
+            if (Dictionaries.isKnownWord(identifier)) continue;
+
             // Split into camelCase parts and check
             const parts = this.splitCamelCase(identifier);
             const unknownParts = parts.filter(part => !Dictionaries.isKnownWord(part));
@@ -228,7 +228,6 @@ class CodeBlur {
         }
 
         this.editor.value = text;
-        this.updateStatus('Identifiers obfuscated');
     }
 
     splitCamelCase(word) {
@@ -327,63 +326,65 @@ class CodeBlur {
         let text = this.editor.value;
 
         // Multi-line comments /* */
-        text = text.replace(/\/\*[\s\S]*?\*\//g, (match) => {
-            const placeholder = this.getCommentPlaceholder(match);
+        text = text.replace(/\/\*([\s\S]*?)\*\//g, (match, content) => {
+            const placeholder = this.getCommentPlaceholder(content);
             return `/* ${placeholder} */`;
         });
 
         // C# XML doc comments ///
-        text = text.replace(/\/\/\/.*$/gm, (match) => {
-            const placeholder = this.getCommentPlaceholder(match);
+        text = text.replace(/\/\/\/(.*)$/gm, (match, content) => {
+            const placeholder = this.getCommentPlaceholder(content);
             return `/// ${placeholder}`;
         });
 
         // Single-line comments //
-        text = text.replace(/\/\/(?!\/).*$/gm, (match) => {
-            const placeholder = this.getCommentPlaceholder(match);
+        text = text.replace(/\/\/(?!\/)(.*)$/gm, (match, content) => {
+            const placeholder = this.getCommentPlaceholder(content);
             return `// ${placeholder}`;
         });
 
         // Python/Shell comments #
-        text = text.replace(/(?<!['"])#(?!['"]).*$/gm, (match) => {
+        text = text.replace(/(?<!['"])#(?!['"])(.*)$/gm, (match, content) => {
             // Skip if inside a string or looks like a hex color
             if (match.match(/^#[0-9a-fA-F]{3,8}$/)) return match;
-            const placeholder = this.getCommentPlaceholder(match);
+            const placeholder = this.getCommentPlaceholder(content);
             return `# ${placeholder}`;
         });
 
         // SQL comments --
-        text = text.replace(/--(?!\[).*$/gm, (match) => {
-            const placeholder = this.getCommentPlaceholder(match);
+        text = text.replace(/--(?!\[)(.*)$/gm, (match, content) => {
+            const placeholder = this.getCommentPlaceholder(content);
             return `-- ${placeholder}`;
         });
 
         // HTML comments <!-- -->
-        text = text.replace(/<!--[\s\S]*?-->/g, (match) => {
-            const placeholder = this.getCommentPlaceholder(match);
+        text = text.replace(/<!--([\s\S]*?)-->/g, (match, content) => {
+            const placeholder = this.getCommentPlaceholder(content);
             return `<!-- ${placeholder} -->`;
         });
 
         // Lua multi-line comments --[[ ]]
-        text = text.replace(/--\[\[[\s\S]*?\]\]/g, (match) => {
-            const placeholder = this.getCommentPlaceholder(match);
+        text = text.replace(/--\[\[([\s\S]*?)\]\]/g, (match, content) => {
+            const placeholder = this.getCommentPlaceholder(content);
             return `--[[ ${placeholder} ]]`;
         });
 
         // VB comments '
-        text = text.replace(/'(?![^']*').*$/gm, (match) => {
+        text = text.replace(/'(?![^']*')(.*)$/gm, (match, content) => {
             // Skip if it looks like a string
             if (match.startsWith("''")) return match;
-            const placeholder = this.getCommentPlaceholder(match);
+            const placeholder = this.getCommentPlaceholder(content);
             return `' ${placeholder}`;
         });
 
         this.editor.value = text;
     }
 
-    getCommentPlaceholder(comment) {
-        // Check if already mapped
-        const trimmed = comment.trim();
+    getCommentPlaceholder(content) {
+        // Check if already mapped (store only the content, not the prefix)
+        const trimmed = content.trim();
+        if (!trimmed) return ''; // Empty comment
+
         if (this.mappings[trimmed]) {
             return this.mappings[trimmed];
         }
@@ -822,10 +823,12 @@ class CodeBlur {
         } while (text !== prevText && passes < maxPasses);
 
         this.editor.value = text;
-        this.updateStatus('Deobfuscated');
+        // Reset to BLUR level
+        this.currentLevel = 0;
+        this.updateLevelDisplay();
         this.updateObfuscationPercent();
         this.updateHighlighting();
-        this.showToast('Text deobfuscated', 'success');
+        this.showToast('Text revealed', 'success');
     }
 
     // ============================================
@@ -969,13 +972,8 @@ class CodeBlur {
     // UI UPDATES
     // ============================================
 
-    updateStatus(message) {
-        this.statusMessage.textContent = message;
-    }
-
     updateMappingCount() {
         const count = Object.keys(this.mappings).length;
-        this.mappingCount.textContent = `Mappings: ${count}`;
         // Update clear button with count (if not in confirm state)
         if (!this.clearConfirmPending) {
             this.clearBtn.textContent = `CLEAR (${count})`;

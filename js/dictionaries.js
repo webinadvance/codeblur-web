@@ -2,54 +2,16 @@
 // Loads and manages known words from JSON files
 
 const Dictionaries = {
-    knownWords: new Set(),
-    brandWords: new Set(),
-    packageWords: new Set(),
     allKnownWords: new Set(),
     loaded: false,
 
-    async load() {
+    load() {
         if (this.loaded) return;
-
-        try {
-            // Load all dictionary files
-            const [knownResponse, brandResponse, packageResponse] = await Promise.all([
-                fetch('js/known_words.json'),
-                fetch('js/brand_words.json'),
-                fetch('js/package_words.json')
-            ]);
-
-            const known = await knownResponse.json();
-            const brands = await brandResponse.json();
-            const packages = await packageResponse.json();
-
-            // Populate sets (case-insensitive by storing lowercase)
-            known.forEach(word => {
-                this.knownWords.add(word.toLowerCase());
-                this.allKnownWords.add(word.toLowerCase());
-            });
-
-            brands.forEach(word => {
-                this.brandWords.add(word.toLowerCase());
-                this.allKnownWords.add(word.toLowerCase());
-            });
-
-            packages.forEach(word => {
-                this.packageWords.add(word.toLowerCase());
-                this.allKnownWords.add(word.toLowerCase());
-            });
-
-            this.loaded = true;
-            console.log(`Dictionaries loaded: ${this.allKnownWords.size} total words`);
-        } catch (error) {
-            console.error('Failed to load dictionaries:', error);
-            // Fallback to embedded minimal dictionary
-            this.loadFallbackDictionary();
-        }
+        this.loadFallbackDictionary();
     },
 
     loadFallbackDictionary() {
-        // Minimal fallback dictionary with common programming terms
+        // Comprehensive fallback dictionary with common programming terms
         const fallbackWords = [
             // Common verbs
             'get', 'set', 'is', 'has', 'can', 'add', 'remove', 'create', 'delete', 'update',
@@ -106,6 +68,22 @@ const Dictionaries = {
             'void', 'int', 'float', 'double', 'long', 'short', 'byte', 'char',
             'var', 'let', 'const', 'readonly', 'final', 'sealed', 'abstract',
 
+            // C#/.NET keywords and namespaces
+            'using', 'namespace', 'class', 'struct', 'record', 'interface', 'enum',
+            'Microsoft', 'System', 'EntityFrameworkCore', 'EntityFramework', 'Entity',
+            'Framework', 'Core', 'Storage', 'Value', 'Conversion', 'Converter',
+            'Linq', 'Expressions', 'Expression', 'Collections', 'Generic', 'Generics',
+            'Threading', 'Tasks', 'Task', 'Async', 'Parallel', 'Concurrent',
+            'Text', 'IO', 'Net', 'Http', 'Web', 'Sockets', 'Security', 'Cryptography',
+            'Reflection', 'Runtime', 'Interop', 'Diagnostics', 'ComponentModel',
+            'Data', 'Sql', 'Client', 'Common', 'Configuration', 'DependencyInjection',
+            'Extensions', 'Hosting', 'Logging', 'Options', 'Caching', 'Memory',
+            'AspNetCore', 'Mvc', 'Razor', 'SignalR', 'Identity', 'Authorization',
+            'Authentication', 'Server', 'Models', 'Domain', 'Shared', 'Enums',
+            'Services', 'Repositories', 'Controllers', 'Handlers', 'Middleware',
+            'Filters', 'Attributes', 'Validators', 'Mappers', 'Helpers', 'Utils',
+            'Contracts', 'Interfaces', 'Abstractions', 'Implementations',
+
             // Common framework terms
             'react', 'angular', 'vue', 'svelte', 'next', 'nuxt', 'express',
             'node', 'npm', 'yarn', 'webpack', 'babel', 'typescript', 'javascript',
@@ -121,12 +99,25 @@ const Dictionaries = {
         });
 
         this.loaded = true;
-        console.log(`Fallback dictionary loaded: ${this.allKnownWords.size} words`);
     },
 
     isKnownWord(word) {
         if (!word) return false;
+        // Ensure dictionary is loaded
+        if (this.allKnownWords.size === 0) {
+            this.loadFallbackDictionary();
+        }
         return this.allKnownWords.has(word.toLowerCase());
+    },
+
+    // Debug function - call from console: Dictionaries.debug()
+    debug() {
+        console.log(`Total words: ${this.allKnownWords.size}`);
+        console.log(`loaded: ${this.loaded}`);
+        console.log(`Has 'using': ${this.allKnownWords.has('using')}`);
+        console.log(`Has 'microsoft': ${this.allKnownWords.has('microsoft')}`);
+        console.log(`Has 'system': ${this.allKnownWords.has('system')}`);
+        console.log(`Has 'linq': ${this.allKnownWords.has('linq')}`);
     }
 };
 
