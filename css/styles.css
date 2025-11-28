@@ -78,22 +78,52 @@ body {
 .header {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 12px;
-    margin-bottom: 16px;
-    padding: 10px 20px;
-    background-color: transparent;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background-color: var(--black);
+    border: 4px solid var(--black);
 }
 
 .title {
     font-family: var(--font-display);
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -2px;
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: -1px;
     text-transform: uppercase;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    line-height: 1;
+}
+
+.title::before {
+    content: '>';
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-weight: 900;
+    font-size: 1.2em;
+    margin-right: 8px;
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }
 
 .version-year {
-    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.55em;
+    font-weight: 700;
+    padding: 4px 8px;
+    background-color: var(--accent);
+    color: var(--black);
+    margin-left: 12px;
+    border: 2px solid var(--accent);
+    line-height: 1;
 }
 
 .github-link {
@@ -103,21 +133,29 @@ body {
     align-items: center;
     justify-content: center;
     padding: 8px;
-    border: var(--border);
-    background-color: var(--white);
-    box-shadow: var(--shadow);
-    transition: transform 0.1s, box-shadow 0.1s;
+    border: 3px solid var(--accent);
+    background-color: var(--black);
+    box-shadow: none;
+    transition: transform 0.1s, background-color 0.1s;
+}
+
+.github-link svg {
+    fill: var(--accent);
+    width: 22px;
+    height: 22px;
 }
 
 .github-link:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-lg);
+    transform: scale(1.1);
     background-color: var(--accent);
 }
 
+.github-link:hover svg {
+    fill: var(--black);
+}
+
 .github-link:active {
-    transform: translate(4px, 4px);
-    box-shadow: none;
+    transform: scale(0.95);
 }
 
 /* ============================================
@@ -126,13 +164,13 @@ body {
 .toolbar {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .button-row {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
@@ -141,9 +179,10 @@ body {
    ============================================ */
 .btn {
     font-family: var(--font-mono);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 700;
-    padding: 14px 24px;
+    padding: 12px 20px;
+    height: 44px;
     border: var(--border);
     background-color: var(--bg-card);
     color: var(--black);
@@ -153,6 +192,10 @@ body {
     box-shadow: var(--shadow);
     transition: transform 0.1s, box-shadow 0.1s;
     position: relative;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Neubrutalist hover - element lifts, shadow expands */
@@ -170,6 +213,15 @@ body {
 .btn-accent {
     background-color: var(--accent);
     color: var(--black);
+    border: 3px solid var(--black);
+    box-shadow: 4px 4px 0 var(--black);
+    font-size: 0.9rem;
+    font-weight: 900;
+}
+
+.btn-accent:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--black);
 }
 
 .btn-black {
@@ -203,10 +255,11 @@ body {
    ============================================ */
 .dropdown {
     font-family: var(--font-mono);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 700;
-    padding: 14px 24px;
+    padding: 12px 20px;
     padding-right: 36px;
+    height: 44px;
     border: var(--border);
     background-color: var(--bg-card);
     color: var(--black);
@@ -221,6 +274,7 @@ body {
     background-repeat: no-repeat;
     background-position: right 14px center;
     transition: transform 0.1s, box-shadow 0.1s;
+    box-sizing: border-box;
 }
 
 .dropdown:hover {
@@ -394,7 +448,7 @@ body {
     align-items: center;
     gap: 12px;
     padding: 10px 16px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     background-color: var(--white);
     border: var(--border-thick);
     box-shadow: var(--shadow-lg);
@@ -488,13 +542,9 @@ body {
     font-family: var(--font-mono);
     font-size: 1.5rem;
     font-weight: 700;
-    min-width: 80px;
+    min-width: 60px;
     text-align: right;
-    padding: 8px 16px;
-    background-color: var(--black);
-    color: var(--accent);
-    border: var(--border);
-    box-shadow: var(--shadow);
+    color: var(--black);
 }
 
 /* ============================================
@@ -553,20 +603,6 @@ body {
     box-shadow: 2px 2px 0 var(--black);
 }
 
-/* Logo - Neubrutalist style */
-.header::before {
-    content: '';
-    width: 28px;
-    height: 28px;
-    background:
-        linear-gradient(135deg, var(--accent) 50%, transparent 50%),
-        linear-gradient(225deg, var(--black) 50%, transparent 50%),
-        var(--white);
-    border: 2px solid var(--black);
-    box-shadow: 2px 2px 0 var(--black);
-    margin-right: 8px;
-    flex-shrink: 0;
-}
 
 /* ============================================
    SCROLLBAR - Chunky neubrutalist style
@@ -631,38 +667,42 @@ body {
     }
 
     .header {
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: center;
         gap: 8px;
-        padding: 8px 12px;
-    }
-
-    .header::before {
-        width: 24px;
-        height: 24px;
-        margin-right: 6px;
+        padding: 6px 10px;
+        margin-bottom: 8px;
+        border-width: 3px;
     }
 
     .title {
-        font-size: 1.4rem;
-        letter-spacing: -1px;
+        font-size: 1.3rem;
+    }
+
+    .title::before {
+        font-size: 1em;
+        margin-right: 6px;
+    }
+
+    .version-year {
+        font-size: 0.5em;
+        padding: 3px 6px;
+        margin-left: 8px;
     }
 
     .github-link {
-        margin-left: auto;
         padding: 6px;
+        border-width: 2px;
     }
 
     .github-link svg {
-        width: 22px;
-        height: 22px;
+        width: 18px;
+        height: 18px;
     }
 
     .obfuscation-meter {
         flex-wrap: wrap;
-        gap: 10px;
-        padding: 12px 14px;
+        gap: 8px;
+        padding: 8px 12px;
+        margin-bottom: 12px;
         box-shadow: var(--shadow);
     }
 
@@ -680,9 +720,7 @@ body {
 
     .meter-percent {
         font-size: 1rem;
-        min-width: 60px;
-        padding: 6px 10px;
-        margin-left: auto;
+        min-width: 50px;
     }
 
     .token-counter {
@@ -703,8 +741,8 @@ body {
     }
 
     .toolbar {
-        gap: 10px;
-        margin-bottom: 14px;
+        gap: 8px;
+        margin-bottom: 8px;
     }
 
     .button-row {
@@ -714,7 +752,8 @@ body {
     }
 
     .btn {
-        padding: 12px 10px;
+        padding: 10px 8px;
+        height: 40px;
         font-size: 0.7rem;
         width: 100%;
         box-shadow: 3px 3px 0 var(--black);
@@ -724,8 +763,9 @@ body {
     .dropdown {
         grid-column: span 2;
         width: 100%;
-        padding: 12px 10px;
+        padding: 10px 8px;
         padding-right: 30px;
+        height: 40px;
         font-size: 0.7rem;
         background-position: right 10px center;
     }
@@ -778,10 +818,11 @@ body {
     }
 
     .header {
-        padding: 6px 10px;
+        padding: 5px 8px;
         gap: 6px;
         margin-bottom: 10px;
         flex-shrink: 0;
+        border-width: 2px;
     }
 
     .obfuscation-meter {
@@ -792,21 +833,19 @@ body {
         flex-shrink: 0;
     }
 
-    .header::before {
-        width: 20px;
-        height: 20px;
-        margin-right: 4px;
-        border-width: 2px;
-        box-shadow: 2px 2px 0 var(--black);
-    }
-
     .title {
         font-size: 1.1rem;
-        letter-spacing: -1px;
+    }
+
+    .title::before {
+        font-size: 0.9em;
+        margin-right: 4px;
     }
 
     .version-year {
-        font-size: 0.9em;
+        font-size: 0.45em;
+        padding: 2px 4px;
+        margin-left: 6px;
     }
 
     .github-link {
@@ -821,7 +860,7 @@ body {
     }
 
     .obfuscation-meter {
-        padding: 10px 12px;
+        padding: 8px 12px;
         gap: 8px;
         margin-bottom: 14px;
         border-width: 3px;
@@ -838,10 +877,7 @@ body {
 
     .meter-percent {
         font-size: 0.9rem;
-        min-width: 55px;
-        padding: 5px 8px;
-        border-width: 2px;
-        box-shadow: 2px 2px 0 var(--black);
+        min-width: 45px;
     }
 
     .token-counter {
@@ -871,7 +907,8 @@ body {
     }
 
     .btn {
-        padding: 10px 6px;
+        padding: 8px 6px;
+        height: 36px;
         font-size: 0.6rem;
         border-width: 2px;
         box-shadow: 2px 2px 0 var(--black);
@@ -888,8 +925,9 @@ body {
     }
 
     .dropdown {
-        padding: 10px 8px;
+        padding: 8px 6px;
         padding-right: 26px;
+        height: 36px;
         font-size: 0.6rem;
         border-width: 2px;
         box-shadow: 2px 2px 0 var(--black);
@@ -940,16 +978,15 @@ body {
     }
 
     .header {
-        padding: 5px 8px;
+        padding: 4px 6px;
     }
 
     .title {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
 
-    .header::before {
-        width: 24px;
-        height: 24px;
+    .version-year {
+        display: none;
     }
 
     .button-row {
