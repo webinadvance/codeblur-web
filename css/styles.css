@@ -344,10 +344,6 @@ body {
     font-style: italic;
 }
 
-#codeEditor::selection {
-    background-color: var(--accent);
-    color: var(--black);
-}
 
 /* ============================================
    OBFUSCATION METER - Neubrutalist Progress Bar
