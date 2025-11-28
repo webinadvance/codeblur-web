@@ -114,16 +114,29 @@ body {
     50% { opacity: 0; }
 }
 
+.version {
+    color: var(--gray-dark);
+    font-weight: 400;
+    margin-left: 6px;
+    font-size: 0.7em;
+}
+
 .version-year {
-    font-family: var(--font-mono);
-    font-size: 0.55em;
+    color: var(--accent);
     font-weight: 700;
-    padding: 4px 8px;
-    background-color: var(--accent);
+}
+
+.edition-stripe {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, #00ffcc 100%);
     color: var(--black);
+    transform: skewX(-10deg);
     margin-left: 12px;
-    border: 2px solid var(--accent);
-    line-height: 1;
 }
 
 .github-link {
@@ -678,11 +691,11 @@ body {
         margin-right: 4px;
     }
 
-    .version-year {
-        font-size: 0.5em;
-        padding: 2px 4px;
-        margin-left: 6px;
-        border: none;
+    .edition-stripe {
+        font-size: 0.5rem;
+        padding: 3px 6px;
+        margin-left: 8px;
+        letter-spacing: 1px;
     }
 
     .github-link {
@@ -890,10 +903,11 @@ body {
         margin-right: 3px;
     }
 
-    .version-year {
-        font-size: 0.4em;
-        padding: 1px 3px;
+    .edition-stripe {
+        font-size: 0.4rem;
+        padding: 2px 4px;
         margin-left: 4px;
+        letter-spacing: 0.5px;
     }
 
     .github-link {
@@ -1020,7 +1034,7 @@ body {
         font-size: 0.9rem;
     }
 
-    .version-year {
+    .edition-stripe {
         display: none;
     }
 
