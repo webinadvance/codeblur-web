@@ -1,0 +1,484 @@
+/* CodeBlur Web - Authentic Neubrutalist Design */
+/* Inspired by: neobrutalism.dev, Figma, Gumroad */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Neubrutalist Color Palette - High contrast, vibrant */
+    --bg-main: #e0e7ff;          /* Soft lavender background */
+    --bg-secondary: #fef3c7;      /* Warm cream */
+    --bg-card: #ffffff;
+    --black: #000000;
+    --white: #ffffff;
+
+    /* Vibrant accent colors - no gradients, pure saturation */
+    --pink: #ff6b9d;
+    --yellow: #fbbf24;
+    --cyan: #22d3ee;
+    --lime: #a3e635;
+    --orange: #fb923c;
+    --purple: #c084fc;
+    --red: #ef4444;
+    --blue: #3b82f6;
+
+    /* Shadows - hard, no blur, offset */
+    --shadow: 4px 4px 0px var(--black);
+    --shadow-lg: 6px 6px 0px var(--black);
+    --shadow-xl: 8px 8px 0px var(--black);
+
+    /* Border */
+    --border: 3px solid var(--black);
+    --border-thick: 4px solid var(--black);
+
+    /* Typography */
+    --font-mono: 'Space Mono', 'Consolas', monospace;
+    --font-display: 'Space Grotesk', 'Arial Black', sans-serif;
+}
+
+/* Grid pattern background - signature neubrutalist element */
+body {
+    font-family: var(--font-mono);
+    background-color: var(--bg-main);
+    background-image:
+        linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--black);
+    min-height: 100vh;
+    padding: 24px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* ============================================
+   HEADER - Bold, chunky typography
+   ============================================ */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 20px 24px;
+    background-color: var(--yellow);
+    border: var(--border-thick);
+    box-shadow: var(--shadow-lg);
+}
+
+.title {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: -3px;
+    text-transform: uppercase;
+}
+
+.version {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    background-color: var(--black);
+    color: var(--white);
+    border: 2px solid var(--black);
+}
+
+/* ============================================
+   TOOLBAR - Button rows
+   ============================================ */
+.toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.button-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* ============================================
+   BUTTONS - Hard shadows, bold hover states
+   ============================================ */
+.btn {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 14px 24px;
+    border: var(--border);
+    background-color: var(--bg-card);
+    color: var(--black);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: var(--shadow);
+    transition: transform 0.1s, box-shadow 0.1s;
+    position: relative;
+}
+
+/* Neubrutalist hover - element lifts, shadow expands */
+.btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Active - element pressed down, no shadow */
+.btn:active {
+    transform: translate(4px, 4px);
+    box-shadow: none;
+}
+
+.btn-accent {
+    background-color: var(--cyan);
+    color: var(--black);
+}
+
+.btn-orange {
+    background-color: var(--orange);
+    color: var(--black);
+}
+
+.btn-green {
+    background-color: var(--lime);
+    color: var(--black);
+}
+
+.btn-secondary {
+    background-color: var(--bg-secondary);
+    color: var(--black);
+}
+
+.btn-danger {
+    background-color: var(--red);
+    color: var(--white);
+}
+
+.btn-pink {
+    background-color: var(--pink);
+    color: var(--black);
+}
+
+.btn-purple {
+    background-color: var(--purple);
+    color: var(--black);
+}
+
+/* ============================================
+   LEVEL INDICATOR - Card style
+   ============================================ */
+.level-indicator {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background-color: var(--bg-card);
+    border: var(--border);
+    box-shadow: var(--shadow);
+    font-weight: 700;
+}
+
+.level-badge {
+    display: inline-block;
+    padding: 8px 20px;
+    background-color: var(--orange);
+    color: var(--black);
+    font-weight: 700;
+    font-size: 1rem;
+    border: var(--border);
+    box-shadow: 3px 3px 0 var(--black);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.level-help {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #444;
+}
+
+/* ============================================
+   EDITOR - Main textarea with hard shadow
+   ============================================ */
+.editor-container {
+    margin-bottom: 20px;
+}
+
+#codeEditor {
+    width: 100%;
+    height: 480px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 20px;
+    border: var(--border-thick);
+    background-color: var(--bg-card);
+    color: var(--black);
+    resize: vertical;
+    outline: none;
+    box-shadow: var(--shadow-lg);
+    transition: box-shadow 0.15s, transform 0.15s;
+}
+
+#codeEditor:focus {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-xl);
+}
+
+#codeEditor::placeholder {
+    color: #888;
+    font-style: italic;
+}
+
+#codeEditor::selection {
+    background-color: var(--yellow);
+    color: var(--black);
+}
+
+/* ============================================
+   STATUS BAR - Inverted colors, bold
+   ============================================ */
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    background-color: var(--black);
+    color: var(--white);
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    border: var(--border);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#statusMessage {
+    color: var(--lime);
+}
+
+#mappingCount {
+    color: var(--cyan);
+}
+
+/* ============================================
+   INFO PANEL - Card with colored background
+   ============================================ */
+.info-panel {
+    padding: 24px;
+    border: var(--border);
+    background-color: var(--bg-secondary);
+    box-shadow: var(--shadow);
+}
+
+.info-panel h3 {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: var(--border);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.level-list {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+}
+
+.level-list li {
+    padding: 12px 16px;
+    background-color: var(--bg-card);
+    border: 2px solid var(--black);
+    box-shadow: 3px 3px 0 var(--black);
+    font-size: 0.9rem;
+}
+
+.level-list li:nth-child(1) strong { color: var(--blue); }
+.level-list li:nth-child(2) strong { color: var(--purple); }
+.level-list li:nth-child(3) strong { color: var(--pink); }
+.level-list li:nth-child(4) strong { color: var(--orange); }
+.level-list li:nth-child(5) strong { color: var(--red); }
+
+.level-list strong {
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* ============================================
+   TOAST NOTIFICATION - Bold popup
+   ============================================ */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    padding: 16px 32px;
+    background-color: var(--black);
+    color: var(--white);
+    font-weight: 700;
+    font-size: 1rem;
+    border: var(--border);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transition: all 0.2s ease-out;
+    z-index: 1000;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.toast.success {
+    background-color: var(--lime);
+    color: var(--black);
+}
+
+.toast.error {
+    background-color: var(--red);
+    color: var(--white);
+}
+
+/* ============================================
+   DECORATIVE ELEMENTS
+   ============================================ */
+
+/* Highlighted text marker */
+.highlight-obfuscated {
+    background-color: var(--cyan);
+    color: var(--black);
+    padding: 2px 6px;
+    font-weight: 700;
+    border: 2px solid var(--black);
+    box-shadow: 2px 2px 0 var(--black);
+}
+
+/* Add some decorative shapes (neubrutalist love shapes) */
+.header::before {
+    content: '';
+    width: 24px;
+    height: 24px;
+    background-color: var(--black);
+    border: 3px solid var(--black);
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+/* ============================================
+   SCROLLBAR - Chunky neubrutalist style
+   ============================================ */
+#codeEditor::-webkit-scrollbar {
+    width: 16px;
+    height: 16px;
+}
+
+#codeEditor::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border: 2px solid var(--black);
+}
+
+#codeEditor::-webkit-scrollbar-thumb {
+    background: var(--black);
+    border: 2px solid var(--black);
+}
+
+#codeEditor::-webkit-scrollbar-thumb:hover {
+    background: #333;
+}
+
+#codeEditor::-webkit-scrollbar-corner {
+    background: var(--black);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .title {
+        font-size: 2rem;
+    }
+
+    .btn {
+        padding: 12px 18px;
+        font-size: 0.8rem;
+        width: 100%;
+    }
+
+    .button-row {
+        flex-direction: column;
+    }
+
+    #codeEditor {
+        height: 350px;
+        font-size: 12px;
+    }
+
+    .level-indicator {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .info-panel {
+        padding: 16px;
+    }
+
+    .level-list li {
+        font-size: 0.8rem;
+    }
+}
+
+/* ============================================
+   ANIMATIONS - Sharp, bold movements
+   ============================================ */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+@keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.btn:focus-visible {
+    outline: 4px solid var(--black);
+    outline-offset: 2px;
+}
+
+/* Error shake animation */
+.shake {
+    animation: shake 0.3s ease-in-out;
+}
+
+/* Success pop animation */
+.pop {
+    animation: pop 0.2s ease-out;
+}
