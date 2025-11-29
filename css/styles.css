@@ -126,6 +126,16 @@ body {
     font-weight: 700;
 }
 
+.tagline {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gray-light);
+    margin-left: 12px;
+}
+
 .edition-stripe {
     font-family: var(--font-mono);
     font-size: 0.65rem;
@@ -136,11 +146,11 @@ body {
     background: linear-gradient(135deg, var(--accent) 0%, #00ffcc 100%);
     color: var(--black);
     transform: skewX(-10deg);
-    margin-left: 12px;
+    margin-left: auto;
 }
 
 .github-link {
-    margin-left: auto;
+    margin-left: 12px;
     color: var(--black);
     display: flex;
     align-items: center;
@@ -800,10 +810,14 @@ body {
         margin-right: 4px;
     }
 
+    .tagline {
+        display: none;
+    }
+
     .edition-stripe {
         font-size: 0.5rem;
         padding: 3px 6px;
-        margin-left: 8px;
+        margin-left: auto;
         letter-spacing: 1px;
     }
 
