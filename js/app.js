@@ -52,6 +52,7 @@ class CodeBlur {
         this.clearBtn = document.getElementById('clearBtn');
         this.anonStyleSelect = document.getElementById('anonStyle');
         this.tokenCount = document.getElementById('tokenCount');
+        this.includePromptCheckbox = document.getElementById('includePrompt');
 
         // Track original text for percentage calculation
         this.originalText = '';
@@ -1011,13 +1012,31 @@ class CodeBlur {
     // ============================================
 
     async copyToClipboard() {
+        let textToCopy = this.editor.value;
+
+        // Prepend obfuscation notice if checkbox is checked
+        if (this.includePromptCheckbox && this.includePromptCheckbox.checked) {
+            const obfuscationNotice = `/*
+ * THIS CODE HAS BEEN OBFUSCATED
+ * Variable names, strings, and identifiers have been anonymized.
+ * Treat all placeholder names as-is - do not attempt to guess or restore original names.
+ */
+
+`;
+            textToCopy = obfuscationNotice + textToCopy;
+        }
+
         try {
-            await navigator.clipboard.writeText(this.editor.value);
+            await navigator.clipboard.writeText(textToCopy);
             this.showToast('Copied to clipboard', 'success');
         } catch (err) {
             // Fallback for older browsers
-            this.editor.select();
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = textToCopy;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
             document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
             this.showToast('Copied to clipboard', 'success');
         }
     }
