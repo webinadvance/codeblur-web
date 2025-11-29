@@ -4,7 +4,7 @@
 class CodeBlur {
     constructor() {
         // Obfuscation levels
-        this.LEVELS = ['BLUR', 'STEALTH', 'PHANTOM', 'ANON'];
+        this.LEVELS = ['BLUR', 'STEALTH', 'PHANTOM', 'ANON', 'NUKE'];
         this.currentLevel = 0;
 
         // Anonymization style presets
@@ -251,6 +251,9 @@ class CodeBlur {
             case 'ANON':
                 this.anonymizeMembers();
                 break;
+            case 'NUKE':
+                this.nukeCode();
+                break;
         }
 
         // Advance to next level
@@ -266,9 +269,20 @@ class CodeBlur {
     updateLevelDisplay() {
         if (this.currentLevel >= this.LEVELS.length) {
             this.blurBtn.textContent = '0xDEAD';
+            this.blurBtn.classList.remove('btn-accent', 'btn-nuke');
+            this.blurBtn.classList.add('btn-accent');
         } else {
             const nextLevel = this.LEVELS[this.currentLevel];
             this.blurBtn.textContent = nextLevel;
+
+            // NUKE level gets red styling
+            if (nextLevel === 'NUKE') {
+                this.blurBtn.classList.remove('btn-accent');
+                this.blurBtn.classList.add('btn-nuke');
+            } else {
+                this.blurBtn.classList.remove('btn-nuke');
+                this.blurBtn.classList.add('btn-accent');
+            }
         }
     }
 
@@ -749,7 +763,59 @@ class CodeBlur {
     }
 
     // ============================================
-    // LEVEL 5: SKELETON - Remove Function Bodies
+    // LEVEL 5: NUKE - Total Obfuscation
+    // ============================================
+
+    nukeCode() {
+        let text = this.editor.value;
+
+        // 1. Obfuscate ALL remaining identifiers (including known words)
+        const identifierPattern = /\b([a-zA-Z_][a-zA-Z0-9_]{2,})\b/g;
+        const processed = new Set();
+        let match;
+
+        // Collect all identifiers first
+        const identifiers = [];
+        while ((match = identifierPattern.exec(text)) !== null) {
+            const identifier = match[1];
+            if (!processed.has(identifier)) {
+                processed.add(identifier);
+                identifiers.push(identifier);
+            }
+        }
+
+        // Sort by length (longest first) to avoid partial replacements
+        identifiers.sort((a, b) => b.length - a.length);
+
+        // Keywords to preserve
+        const keywords = new Set([
+            'if', 'else', 'while', 'for', 'switch', 'case', 'default', 'return',
+            'class', 'interface', 'struct', 'enum', 'async', 'await', 'try', 'catch',
+            'finally', 'throw', 'new', 'this', 'base', 'super', 'typeof', 'instanceof',
+            'public', 'private', 'protected', 'static', 'readonly', 'const', 'let', 'var',
+            'function', 'void', 'null', 'undefined', 'true', 'false', 'import', 'export',
+            'from', 'extends', 'implements', 'constructor', 'get', 'set', 'yield',
+            'break', 'continue', 'delete', 'in', 'of', 'with', 'debugger',
+            'int', 'string', 'bool', 'float', 'double', 'long', 'short', 'byte', 'char',
+            'boolean', 'number', 'object', 'any', 'never', 'unknown', 'symbol', 'bigint'
+        ]);
+
+        for (const identifier of identifiers) {
+            // Skip if already obfuscated or is a keyword
+            if (this.isObfuscatedIdentifier(identifier)) continue;
+            if (keywords.has(identifier.toLowerCase())) continue;
+            if (identifier.length < 3) continue;
+
+            // Get or create mapping
+            const obfuscated = this.getOrCreateMapping(identifier);
+            text = this.replaceWholeWord(text, identifier, obfuscated);
+        }
+
+        this.editor.value = text;
+    }
+
+    // ============================================
+    // LEVEL 6: SKELETON - Remove Function Bodies
     // ============================================
 
     removeFunctionBodies() {
@@ -1101,6 +1167,24 @@ class CodeBlur {
             return 0;
         }
 
+        // Keywords to exclude from counting (not real identifiers)
+        const keywords = new Set([
+            'if', 'else', 'while', 'for', 'switch', 'case', 'default', 'return',
+            'class', 'interface', 'struct', 'enum', 'async', 'await', 'try', 'catch',
+            'finally', 'throw', 'new', 'this', 'base', 'super', 'typeof', 'instanceof',
+            'public', 'private', 'protected', 'static', 'readonly', 'const', 'let', 'var',
+            'function', 'void', 'null', 'undefined', 'true', 'false', 'import', 'export',
+            'from', 'extends', 'implements', 'constructor', 'get', 'set', 'yield',
+            'break', 'continue', 'delete', 'in', 'of', 'with', 'debugger', 'using',
+            'int', 'string', 'bool', 'float', 'double', 'long', 'short', 'byte', 'char',
+            'boolean', 'number', 'object', 'any', 'never', 'unknown', 'symbol', 'bigint',
+            'virtual', 'override', 'abstract', 'sealed', 'partial', 'internal', 'extern',
+            'namespace', 'package', 'def', 'self', 'lambda', 'pass', 'raise', 'except',
+            'elif', 'None', 'True', 'False', 'and', 'or', 'not', 'is', 'as', 'with',
+            'global', 'nonlocal', 'assert', 'print', 'input', 'range', 'len', 'type',
+            'Task', 'List', 'Dictionary', 'Array', 'String', 'Object', 'Console'
+        ]);
+
         // Build pattern from all style prefixes
         const allPrefixes = new Set();
         Object.values(this.STYLE_PRESETS).forEach(style => {
@@ -1116,9 +1200,12 @@ class CodeBlur {
         const obfuscatedPattern = new RegExp(`(${prefixPattern})\\d+`, 'g');
         const obfuscatedMatches = currentText.match(obfuscatedPattern) || [];
 
-        // Count all identifier-like tokens (words with 2+ chars)
+        // Count all identifier-like tokens (words with 2+ chars), excluding keywords
         const allIdentifiersPattern = /\b[a-zA-Z_][a-zA-Z0-9_]{1,}\b/g;
-        const allMatches = currentText.match(allIdentifiersPattern) || [];
+        const allMatchesRaw = currentText.match(allIdentifiersPattern) || [];
+
+        // Filter out keywords - only count actual code identifiers
+        const allMatches = allMatchesRaw.filter(word => !keywords.has(word));
 
         if (allMatches.length === 0) {
             return 0;

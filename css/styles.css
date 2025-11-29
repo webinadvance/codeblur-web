@@ -238,6 +238,22 @@ body {
     box-shadow: 6px 6px 0 var(--black);
 }
 
+.btn-nuke {
+    background-color: #cc0000;
+    color: var(--white);
+    border: 3px solid var(--black);
+    box-shadow: 4px 4px 0 var(--black);
+    font-size: 0.9rem;
+    font-weight: 900;
+    padding: 12px 40px;
+}
+
+.btn-nuke:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--black);
+    background-color: #ff0000;
+}
+
 .btn-black {
     background-color: var(--black);
     color: var(--white);
@@ -892,6 +908,16 @@ body {
 
     .btn-accent {
         border: none;
+        box-shadow: none;
+    }
+
+    .btn-nuke {
+        border: none;
+        box-shadow: none;
+    }
+
+    .btn-nuke:hover {
+        transform: none;
         box-shadow: none;
     }
 
