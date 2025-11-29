@@ -135,6 +135,7 @@ class CodeBlur {
         document.getElementById('clearBtn').addEventListener('click', () => this.handleClear());
         document.getElementById('obfuscateStringsBtn').addEventListener('click', () => this.obfuscateStringsOnly());
         document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+        document.getElementById('askClaudeBtn').addEventListener('click', () => this.askClaude());
 
         // Style selector
         this.anonStyleSelect.addEventListener('change', (e) => {
@@ -1120,6 +1121,40 @@ class CodeBlur {
         // In web context, we can't close the window unless we opened it
         // So just show a message
         this.showToast('Copied! You can close this tab.', 'success');
+    }
+
+    getCodeWithInstructions() {
+        let code = this.editor.value;
+        if (!code || code.trim() === '') {
+            return null;
+        }
+
+        // Prepend instructions if checkbox is checked
+        if (this.includePromptCheckbox && this.includePromptCheckbox.checked) {
+            const obfuscationNotice = `/*
+ * THIS CODE HAS BEEN OBFUSCATED
+ * Variable names, strings, and identifiers have been anonymized.
+ * Treat all placeholder names as-is - do not attempt to guess or restore original names.
+ */
+
+`;
+            code = obfuscationNotice + code;
+        }
+
+        return code;
+    }
+
+    askClaude() {
+        const code = this.getCodeWithInstructions();
+        if (!code) {
+            this.showToast('No code to send', 'error');
+            return;
+        }
+
+        const encodedCode = encodeURIComponent(code);
+        const claudeUrl = `https://claude.ai/new?q=${encodedCode}`;
+        window.open(claudeUrl, '_blank');
+        this.showToast('Opening Claude...', 'success');
     }
 
     // ============================================

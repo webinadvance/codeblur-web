@@ -276,6 +276,19 @@ body {
     padding: 12px 40px;
 }
 
+.btn-claude {
+    background-color: #D97757;
+    color: var(--white);
+    border: 3px solid var(--black);
+    box-shadow: 4px 4px 0 var(--black);
+}
+
+.btn-claude:hover {
+    background-color: #e88a6a;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--black);
+}
+
 .btn-gray-mid {
     background-color: var(--gray-mid);
     color: var(--white);
