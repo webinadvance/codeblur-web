@@ -245,10 +245,9 @@ class CodeBlur {
     // ============================================
 
     applyNextLevel() {
-        // Check if all levels completed
+        // Loop back to BLUR if all levels completed
         if (this.currentLevel >= this.LEVELS.length) {
-            this.showToast('All levels complete! Paste new code to start over.', 'info');
-            return;
+            this.currentLevel = 0;
         }
 
         this.saveUndoState();
@@ -286,22 +285,18 @@ class CodeBlur {
     }
 
     updateLevelDisplay() {
-        if (this.currentLevel >= this.LEVELS.length) {
-            this.blurBtn.textContent = 'DONE';
-            this.blurBtn.classList.remove('btn-accent', 'btn-nuke');
-            this.blurBtn.classList.add('btn-accent');
-        } else {
-            const nextLevel = this.LEVELS[this.currentLevel];
-            this.blurBtn.textContent = nextLevel;
+        // Loop display index if past the end
+        const displayLevel = this.currentLevel >= this.LEVELS.length ? 0 : this.currentLevel;
+        const nextLevel = this.LEVELS[displayLevel];
+        this.blurBtn.textContent = nextLevel;
 
-            // NUKE level gets red styling
-            if (nextLevel === 'NUKE') {
-                this.blurBtn.classList.remove('btn-accent');
-                this.blurBtn.classList.add('btn-nuke');
-            } else {
-                this.blurBtn.classList.remove('btn-nuke');
-                this.blurBtn.classList.add('btn-accent');
-            }
+        // NUKE level gets red styling
+        if (nextLevel === 'NUKE') {
+            this.blurBtn.classList.remove('btn-accent');
+            this.blurBtn.classList.add('btn-nuke');
+        } else {
+            this.blurBtn.classList.remove('btn-nuke');
+            this.blurBtn.classList.add('btn-accent');
         }
     }
 
