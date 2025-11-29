@@ -159,6 +159,7 @@ class CodeBlur {
 
         // Paste handler - auto-apply existing mappings to new content
         this.editor.addEventListener('paste', (e) => {
+            const wasEmpty = !this.editor.value.trim();
             this.saveUndoState();
             // Reset to BLUR level for new content
             this.currentLevel = 0;
@@ -168,9 +169,11 @@ class CodeBlur {
                 this.applyExistingMappings();
                 this.updateObfuscationPercent();
                 this.updateHighlighting();
-                // Scroll to top
-                this.editor.scrollTop = 0;
-                this.codeHighlight.scrollTop = 0;
+                // Only scroll to top if pasting into empty editor
+                if (wasEmpty) {
+                    this.editor.scrollTop = 0;
+                    this.codeHighlight.scrollTop = 0;
+                }
             }, 0);
         });
 
@@ -202,6 +205,17 @@ class CodeBlur {
         this.codeHighlight.addEventListener('scroll', () => {
             this.editor.scrollTop = this.codeHighlight.scrollTop;
             this.editor.scrollLeft = this.codeHighlight.scrollLeft;
+        });
+
+        // Double-click on textarea to obfuscate selected word
+        this.editor.addEventListener('dblclick', () => {
+            const selection = this.editor.value.substring(
+                this.editor.selectionStart,
+                this.editor.selectionEnd
+            ).trim();
+            if (selection && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(selection)) {
+                this.obfuscateWord(selection);
+            }
         });
 
         // Initial highlighting
