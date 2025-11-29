@@ -268,7 +268,7 @@ class CodeBlur {
 
     updateLevelDisplay() {
         if (this.currentLevel >= this.LEVELS.length) {
-            this.blurBtn.textContent = '0xDEAD';
+            this.blurBtn.textContent = 'DONE';
             this.blurBtn.classList.remove('btn-accent', 'btn-nuke');
             this.blurBtn.classList.add('btn-accent');
         } else {
