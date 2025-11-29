@@ -201,6 +201,24 @@ class CodeBlur {
 
         // Initial highlighting
         this.updateHighlighting();
+
+        // Click outside clears the clear confirmation state
+        document.addEventListener('click', (e) => {
+            if (this.clearConfirmPending && !this.clearBtn.contains(e.target)) {
+                this.resetClearButton();
+            }
+        });
+    }
+
+    resetClearButton() {
+        this.clearConfirmPending = false;
+        this.updateMappingCount();
+        this.clearBtn.classList.remove('btn-danger');
+        this.clearBtn.classList.add('btn-gray-light');
+        if (this.clearTimeout) {
+            clearTimeout(this.clearTimeout);
+            this.clearTimeout = null;
+        }
     }
 
     // ============================================
@@ -967,14 +985,7 @@ class CodeBlur {
         if (this.clearConfirmPending) {
             // Second click - actually clear
             this.clearAll();
-            this.clearConfirmPending = false;
-            this.clearBtn.textContent = 'CLEAR';
-            this.clearBtn.classList.remove('btn-danger');
-            this.clearBtn.classList.add('btn-gray-light');
-            if (this.clearTimeout) {
-                clearTimeout(this.clearTimeout);
-                this.clearTimeout = null;
-            }
+            this.resetClearButton();
         } else {
             // First click - show confirmation with mapping count
             this.clearConfirmPending = true;
@@ -985,10 +996,7 @@ class CodeBlur {
 
             // Reset after 3 seconds
             this.clearTimeout = setTimeout(() => {
-                this.clearConfirmPending = false;
-                this.clearBtn.textContent = 'CLEAR';
-                this.clearBtn.classList.remove('btn-danger');
-                this.clearBtn.classList.add('btn-gray-light');
+                this.resetClearButton();
             }, 3000);
         }
     }

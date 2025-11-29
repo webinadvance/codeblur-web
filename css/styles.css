@@ -230,6 +230,7 @@ body {
     box-shadow: 4px 4px 0 var(--black);
     font-size: 0.9rem;
     font-weight: 900;
+    padding: 12px 40px;
 }
 
 .btn-accent:hover {
@@ -246,6 +247,7 @@ body {
     background-color: var(--gray-dark);
     color: var(--white);
     border: 3px solid var(--accent);
+    padding: 12px 40px;
 }
 
 .btn-gray-mid {
@@ -409,6 +411,9 @@ body {
 
 .checkbox-text {
     user-select: none;
+    line-height: 1.1;
+    text-align: center;
+    font-size: 0.55rem;
 }
 
 /* ============================================
