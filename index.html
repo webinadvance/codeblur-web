@@ -132,16 +132,14 @@
         <div class="editor-container">
             <div class="editor-wrapper">
                 <div id="codeHighlight" class="code-highlight" aria-hidden="true"></div>
-                <textarea id="codeEditor" placeholder="// Paste your code here or type directly...
-// Supports: C#, Java, JavaScript, TypeScript, Python, Go, Rust, and more
+                <textarea id="codeEditor" placeholder="PASTE YOUR CODE HERE
 
-public class UserService {
-    private readonly IUserRepository _userRepository;
+> Click words to obfuscate individually
+> BLUR button cycles through obfuscation levels
+> REVEAL restores original names
+> Ctrl+Z to undo
 
-    public async Task<User> GetUserByEmail(string email) {
-        return await _userRepository.FindByEmail(email);
-    }
-}"></textarea>
+Supports: C#, Java, JavaScript, TypeScript, Python, Go, Rust"></textarea>
             </div>
         </div>
 
