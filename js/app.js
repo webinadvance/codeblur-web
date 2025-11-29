@@ -175,7 +175,11 @@ class CodeBlur {
         });
 
         // Update percentage, highlighting, and token count on input
-        this.editor.addEventListener('input', () => {
+        this.editor.addEventListener('input', (e) => {
+            // Auto-obfuscate when user finishes typing a mapped word
+            if (e.inputType === 'insertText' && /[\s\.\,\;\:\(\)\{\}\[\]\n]/.test(e.data)) {
+                this.autoObfuscateLastWord();
+            }
             this.updateObfuscationPercent();
             this.updateHighlighting();
             this.updateTokenCount();
@@ -1121,6 +1125,45 @@ class CodeBlur {
         // In web context, we can't close the window unless we opened it
         // So just show a message
         this.showToast('Copied! You can close this tab.', 'success');
+    }
+
+    autoObfuscateLastWord() {
+        if (Object.keys(this.mappings).length === 0) return;
+
+        const cursorPos = this.editor.selectionStart;
+        const text = this.editor.value;
+
+        // Find the word before the cursor (before the delimiter that was just typed)
+        const beforeCursor = text.substring(0, cursorPos - 1);
+        const wordMatch = beforeCursor.match(/\b([a-zA-Z_][a-zA-Z0-9_]*)$/);
+
+        if (!wordMatch) return;
+
+        const word = wordMatch[1];
+        const wordStart = beforeCursor.length - word.length;
+
+        // Check if this word has a mapping (case insensitive)
+        const wordLower = word.toLowerCase();
+        let obfuscated = null;
+
+        for (const [original, mapped] of Object.entries(this.mappings)) {
+            if (original.toLowerCase() === wordLower) {
+                obfuscated = mapped;
+                break;
+            }
+        }
+
+        if (obfuscated) {
+            const before = text.substring(0, wordStart);
+            const after = text.substring(cursorPos - 1);
+
+            this.editor.value = before + obfuscated + after;
+
+            // Restore cursor position (adjusted for length difference)
+            const newCursorPos = wordStart + obfuscated.length + 1;
+            this.editor.selectionStart = newCursorPos;
+            this.editor.selectionEnd = newCursorPos;
+        }
     }
 
     getCodeWithInstructions() {

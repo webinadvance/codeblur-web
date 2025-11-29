@@ -22,6 +22,14 @@ const Dictionaries = {
             'connect', 'disconnect', 'subscribe', 'unsubscribe', 'publish', 'emit',
             'render', 'display', 'show', 'hide', 'enable', 'disable', 'toggle',
             'check', 'verify', 'assert', 'test', 'mock', 'spy', 'stub',
+            'apply', 'call', 'bind', 'invoke', 'trigger', 'fire', 'dispatch',
+            'translate', 'localize', 'format', 'encode', 'decode', 'encrypt', 'decrypt',
+            'merge', 'split', 'join', 'concat', 'append', 'prepend', 'insert',
+            'copy', 'clone', 'duplicate', 'move', 'swap', 'replace', 'clear', 'reset',
+            'push', 'pop', 'shift', 'unshift', 'slice', 'splice',
+            'log', 'print', 'trace', 'debug', 'warn', 'info',
+            'wait', 'delay', 'sleep', 'pause', 'resume', 'cancel', 'abort',
+            'lock', 'unlock', 'acquire', 'release', 'hold', 'free',
 
             // Common nouns
             'data', 'value', 'result', 'response', 'request', 'error', 'message',
@@ -39,6 +47,11 @@ const Dictionaries = {
             'form', 'field', 'input', 'select', 'option', 'checkbox', 'radio',
             'table', 'row', 'column', 'cell', 'grid', 'layout', 'container',
             'image', 'icon', 'logo', 'avatar', 'thumbnail', 'preview',
+            'element', 'node', 'document', 'window', 'dom', 'html', 'css', 'style',
+            'attribute', 'property', 'class', 'className', 'classList', 'dataset',
+            'inner', 'outer', 'innerHTML', 'textContent', 'nodeValue',
+            'append', 'prepend', 'before', 'after', 'remove', 'replace',
+            'query', 'selector', 'getElementById', 'querySelector', 'querySelectorAll',
             'user', 'admin', 'role', 'permission', 'auth', 'token', 'session',
             'date', 'time', 'timestamp', 'duration', 'interval', 'timeout',
             'count', 'total', 'sum', 'average', 'min', 'max', 'length', 'size',
@@ -57,9 +70,12 @@ const Dictionaries = {
             'default', 'custom', 'base', 'abstract', 'virtual', 'override',
             'primary', 'secondary', 'main', 'sub', 'child', 'parent', 'root',
 
-            // Common prepositions/connectors
+            // Common prepositions/connectors/modifiers
             'of', 'to', 'from', 'with', 'by', 'for', 'in', 'on', 'at', 'as',
             'and', 'or', 'not', 'if', 'else', 'then', 'when', 'while', 'until',
+            'no', 'yes', 'ok', 'do', 'be', 'go', 'up', 'down', 'left', 'right',
+            'force', 'skip', 'only', 'also', 'just', 'even', 'still', 'already',
+            'lang', 'language', 'locale', 'region', 'country', 'code',
 
             // Framework/language keywords
             'return', 'throw', 'try', 'catch', 'finally', 'break', 'continue',
