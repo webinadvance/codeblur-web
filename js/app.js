@@ -3,8 +3,8 @@
 
 class CodeBlur {
     constructor() {
-        // Obfuscation levels
-        this.LEVELS = ['BLUR', 'STEALTH', 'PHANTOM', 'ANON', 'NUKE'];
+        // Obfuscation levels (simplified: 3 levels)
+        this.LEVELS = ['BLUR', 'ANON', 'NUKE'];
         this.currentLevel = 0;
 
         // Anonymization style presets
@@ -255,18 +255,16 @@ class CodeBlur {
 
         switch (levelName) {
             case 'BLUR':
+                // Identifiers + comments/empty lines
                 this.obfuscateIdentifiers();
-                break;
-            case 'STEALTH':
                 this.removeComments();
                 this.removeEmptyLines();
                 break;
-            case 'PHANTOM':
+            case 'ANON':
+                // Strings/guids/paths + composite identifiers
                 this.obfuscateStrings();
                 this.obfuscateGuids();
                 this.obfuscatePaths();
-                break;
-            case 'ANON':
                 this.anonymizeMembers();
                 break;
             case 'NUKE':
@@ -400,16 +398,9 @@ class CodeBlur {
     }
 
     getOrCreateMapping(value) {
-        // Check if already mapped
+        // Check if already mapped as a KEY
         if (this.mappings[value]) {
             return this.mappings[value];
-        }
-
-        // Check reverse mapping
-        for (const [orig, mapped] of Object.entries(this.mappings)) {
-            if (mapped === value) {
-                return mapped;
-            }
         }
 
         // Generate new identifier using current style
