@@ -33,6 +33,17 @@ class CodeBlur {
         // Number obfuscation threshold (0 = never, 3+ = obfuscate numbers with 3+ digits)
         this.numberThreshold = 4;
 
+        // Build cached patterns from all style prefixes (for obfuscation detection)
+        const allPrefixes = [];
+        Object.values(this.STYLE_PRESETS).forEach(style => {
+            style.prefixes.forEach(p => allPrefixes.push(p));
+            allPrefixes.push(style.comment, style.guid, style.path, style.func, style.prop, style.field);
+        });
+        allPrefixes.sort((a, b) => b.length - a.length); // longest first
+        const prefixPattern = allPrefixes.join('|');
+        this.obfuscatedPattern = new RegExp(`(${prefixPattern})\\d{2,}`);           // contains PREFIX + 2+ digits
+        this.fullyObfuscatedPattern = new RegExp(`^(${prefixPattern})\\d+$`);       // ONLY PREFIX + digits
+
         // Mappings storage
         this.mappings = {};
         this.counters = {};
@@ -441,55 +452,12 @@ class CodeBlur {
     }
 
     isObfuscatedIdentifier(word) {
-        // Build pattern from all style prefixes
-        const allPrefixes = new Set();
-        Object.values(this.STYLE_PRESETS).forEach(style => {
-            style.prefixes.forEach(p => allPrefixes.add(p));
-            allPrefixes.add(style.comment);
-            allPrefixes.add(style.guid);
-            allPrefixes.add(style.path);
-            allPrefixes.add(style.func);
-            allPrefixes.add(style.prop);
-            allPrefixes.add(style.field);
-        });
-        const prefixPattern = Array.from(allPrefixes).join('|');
-        const pattern = new RegExp(`^(${prefixPattern})\\d+$`);
-        return pattern.test(word);
+        return this.fullyObfuscatedPattern.test(word);
     }
 
     containsObfuscatedPart(word) {
-        // Check if word contains any obfuscated value from our mappings
-        for (const obfuscated of Object.values(this.mappings)) {
-            if (word.includes(obfuscated) && word !== obfuscated) {
-                return true;
-            }
-        }
-
-        // Also check against obfuscation pattern directly (PREFIX + digits)
-        // This catches cases where mapping might be structured differently
-        const allPrefixes = new Set();
-        Object.values(this.STYLE_PRESETS).forEach(style => {
-            style.prefixes.forEach(p => allPrefixes.add(p));
-            allPrefixes.add(style.comment);
-            allPrefixes.add(style.guid);
-            allPrefixes.add(style.path);
-            allPrefixes.add(style.func);
-            allPrefixes.add(style.prop);
-            allPrefixes.add(style.field);
-        });
-
-        // Sort by length (longest first) to match longer prefixes first
-        const sortedPrefixes = Array.from(allPrefixes).sort((a, b) => b.length - a.length);
-
-        for (const prefix of sortedPrefixes) {
-            // Check if word contains PREFIX followed by digits (like A001, PERSON001)
-            const pattern = new RegExp(`${prefix}\\d{2,}`);
-            if (pattern.test(word) && !this.isObfuscatedIdentifier(word)) {
-                return true;
-            }
-        }
-
-        return false;
+        // Word contains obfuscated pattern but is NOT fully obfuscated
+        return this.obfuscatedPattern.test(word) && !this.fullyObfuscatedPattern.test(word);
     }
 
     replaceWholeWord(text, search, replace) {
@@ -768,57 +736,35 @@ class CodeBlur {
     // LEVEL 4: ANON - Obfuscate All Composite Identifiers
     // ============================================
 
-    // Expand obfuscated parts in a word back to their originals
-    // e.g., "A001Manager" -> "UserManager" (if User -> A001 exists)
+    // Expand obfuscated parts back to originals (for storing clean mappings)
     expandToOriginal(word) {
-        // Build reverse mapping: obfuscated -> original
-        const reverseMap = {};
-        for (const [original, obfuscated] of Object.entries(this.mappings)) {
-            reverseMap[obfuscated] = original;
+        const reverseMap = Object.fromEntries(
+            Object.entries(this.mappings).map(([k, v]) => [v, k])
+        );
+        const sorted = Object.keys(reverseMap).sort((a, b) => b.length - a.length);
+        let result = word;
+        for (const obf of sorted) {
+            if (result.includes(obf)) result = result.split(obf).join(reverseMap[obf]);
         }
-
-        // Sort by length (longest first) to avoid partial matches
-        const sortedObfuscated = Object.keys(reverseMap).sort((a, b) => b.length - a.length);
-
-        let expanded = word;
-        for (const obfuscated of sortedObfuscated) {
-            if (expanded.includes(obfuscated)) {
-                expanded = expanded.split(obfuscated).join(reverseMap[obfuscated]);
-            }
-        }
-        return expanded;
+        return result;
     }
 
     anonymizeMembers() {
         let text = this.editor.value;
-
-        // Get all unique words in text
         const words = [...new Set(text.match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) || [])];
-
-        // Build pattern to detect obfuscated parts (PREFIX + 2+ digits)
-        const allPrefixes = [];
-        Object.values(this.STYLE_PRESETS).forEach(style => {
-            style.prefixes.forEach(p => allPrefixes.push(p));
-            allPrefixes.push(style.comment, style.guid, style.path, style.func, style.prop, style.field);
-        });
-        // Sort longest first
-        allPrefixes.sort((a, b) => b.length - a.length);
-        const obfuscatedPattern = new RegExp(`(${allPrefixes.join('|')})\\d{2,}`);
 
         // Find composites: words containing obfuscated pattern but NOT fully obfuscated
         const composites = words.filter(word => {
-            if (this.isObfuscatedIdentifier(word)) return false; // skip pure A001, PERSON001
-            return obfuscatedPattern.test(word); // contains A001, D001, etc.
+            if (this.isObfuscatedIdentifier(word)) return false;
+            return this.obfuscatedPattern.test(word);
         });
 
-        // Sort by length (longest first) and replace all
+        // Sort longest first and replace
         composites.sort((a, b) => b.length - a.length);
         for (const word of composites) {
-            // IMPORTANT: Expand to original form before storing mapping
-            // e.g., "A001Manager" -> store "UserManager" -> "B001"
-            // This ensures reveal works in one pass without nested lookups
-            const expandedOriginal = this.expandToOriginal(word);
-            const placeholder = this.getOrCreateMapping(expandedOriginal);
+            // Store EXPANDED original so reveal works cleanly
+            const expanded = this.expandToOriginal(word);
+            const placeholder = this.getOrCreateMapping(expanded);
             text = this.replaceWholeWord(text, word, placeholder);
         }
 
@@ -1037,18 +983,16 @@ class CodeBlur {
 
     deobfuscate() {
         this.saveUndoState();
-        let text = this.editor.value;
-        const originalText = text;
+        const originalText = this.editor.value;
+        let text = originalText;
 
-        // Sort mappings by obfuscated value length (longest first) to avoid partial replacements
+        // Sort mappings by obfuscated value length (longest first)
         const sortedMappings = Object.entries(this.mappings)
             .sort((a, b) => b[1].length - a[1].length);
 
-        // Single pass - apply all mappings once per click
+        // Single pass - user clicks multiple times to reveal layers
         for (const [original, obfuscated] of sortedMappings) {
-            const escaped = obfuscated.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`\\b${escaped}\\b`, 'g');
-            text = text.replace(regex, original);
+            text = this.replaceWholeWord(text, obfuscated, original);
         }
 
         this.editor.value = text;
@@ -1059,16 +1003,15 @@ class CodeBlur {
             return;
         }
 
-        // Reset to BLUR level
         this.currentLevel = 0;
         this.updateLevelDisplay();
         this.updateObfuscationPercent();
         this.updateHighlighting();
 
         if (percent > 0) {
-            this.showToast(`Revealed (${percent}% remaining - click again)`, 'success');
+            this.showToast(`Revealed (${percent}% remaining)`, 'success');
         } else {
-            this.showToast('Text revealed', 'success');
+            this.showToast('Fully revealed', 'success');
         }
     }
 
@@ -1300,60 +1243,7 @@ class CodeBlur {
     }
 
     calculateObfuscationPercent() {
-        const currentText = this.editor.value;
-
-        // If no text, return 0
-        if (!currentText || currentText.trim() === '') {
-            return 0;
-        }
-
-        // Keywords to exclude from counting (not real identifiers)
-        const keywords = new Set([
-            'if', 'else', 'while', 'for', 'switch', 'case', 'default', 'return',
-            'class', 'interface', 'struct', 'enum', 'async', 'await', 'try', 'catch',
-            'finally', 'throw', 'new', 'this', 'base', 'super', 'typeof', 'instanceof',
-            'public', 'private', 'protected', 'static', 'readonly', 'const', 'let', 'var',
-            'function', 'void', 'null', 'undefined', 'true', 'false', 'import', 'export',
-            'from', 'extends', 'implements', 'constructor', 'get', 'set', 'yield',
-            'break', 'continue', 'delete', 'in', 'of', 'with', 'debugger', 'using',
-            'int', 'string', 'bool', 'float', 'double', 'long', 'short', 'byte', 'char',
-            'boolean', 'number', 'object', 'any', 'never', 'unknown', 'symbol', 'bigint',
-            'virtual', 'override', 'abstract', 'sealed', 'partial', 'internal', 'extern',
-            'namespace', 'package', 'def', 'self', 'lambda', 'pass', 'raise', 'except',
-            'elif', 'None', 'True', 'False', 'and', 'or', 'not', 'is', 'as', 'with',
-            'global', 'nonlocal', 'assert', 'print', 'input', 'range', 'len', 'type',
-            'Task', 'List', 'Dictionary', 'Array', 'String', 'Object', 'Console'
-        ]);
-
-        // Build pattern from all style prefixes
-        const allPrefixes = new Set();
-        Object.values(this.STYLE_PRESETS).forEach(style => {
-            style.prefixes.forEach(p => allPrefixes.add(p));
-            allPrefixes.add(style.comment);
-            allPrefixes.add(style.guid);
-            allPrefixes.add(style.path);
-            allPrefixes.add(style.func);
-            allPrefixes.add(style.prop);
-            allPrefixes.add(style.field);
-        });
-        const prefixPattern = Array.from(allPrefixes).join('|');
-        const obfuscatedPattern = new RegExp(`(${prefixPattern})\\d+`, 'g');
-        const obfuscatedMatches = currentText.match(obfuscatedPattern) || [];
-
-        // Count all identifier-like tokens (words with 2+ chars), excluding keywords
-        const allIdentifiersPattern = /\b[a-zA-Z_][a-zA-Z0-9_]{1,}\b/g;
-        const allMatchesRaw = currentText.match(allIdentifiersPattern) || [];
-
-        // Filter out keywords - only count actual code identifiers
-        const allMatches = allMatchesRaw.filter(word => !keywords.has(word));
-
-        if (allMatches.length === 0) {
-            return 0;
-        }
-
-        // Calculate percentage based on ratio of obfuscated tokens
-        const percent = Math.round((obfuscatedMatches.length / allMatches.length) * 100);
-        return Math.min(percent, 100); // Cap at 100%
+        return this.calculateObfuscationPercentForText(this.editor.value);
     }
 
     updateObfuscationPercent() {
