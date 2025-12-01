@@ -196,12 +196,6 @@ Mappings persist across pastes and sessions"></textarea>
                     .then(registration => {
                         console.log('ServiceWorker registered:', registration.scope);
 
-                        // Check for updates immediately
-                        registration.update();
-
-                        // Check for updates every 60 seconds
-                        setInterval(() => registration.update(), 60000);
-
                         // Detect new service worker waiting
                         registration.addEventListener('updatefound', () => {
                             newWorker = registration.installing;
