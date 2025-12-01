@@ -1004,7 +1004,8 @@ class CodeBlur {
             for (const [original, obfuscated] of sortedMappings) {
                 // Escape special regex characters in obfuscated string
                 const escaped = obfuscated.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(escaped, 'g');
+                // Use word boundary matching to avoid partial replacements
+                const regex = new RegExp(`\\b${escaped}\\b`, 'g');
                 text = text.replace(regex, original);
             }
             passes++;
