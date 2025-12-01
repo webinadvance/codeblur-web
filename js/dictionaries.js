@@ -7,7 +7,23 @@ const Dictionaries = {
 
     load() {
         if (this.loaded) return;
-        this.loadFallbackDictionary();
+
+        // Load from embedded words data (generated from JSON files)
+        if (typeof KNOWN_WORDS_DATA !== 'undefined') {
+            KNOWN_WORDS_DATA.forEach(word => {
+                this.allKnownWords.add(word.toLowerCase());
+            });
+            console.log(`Dictionaries loaded: ${this.allKnownWords.size} words from embedded data`);
+            // Update word count in UI
+            const countEl = document.getElementById('dict-count');
+            if (countEl) countEl.textContent = this.allKnownWords.size.toLocaleString();
+        } else {
+            // Fallback if words_data.js not loaded
+            console.warn('KNOWN_WORDS_DATA not found, using fallback dictionary');
+            this.loadFallbackDictionary();
+        }
+
+        this.loaded = true;
     },
 
     loadFallbackDictionary() {
@@ -113,8 +129,6 @@ const Dictionaries = {
         fallbackWords.forEach(word => {
             this.allKnownWords.add(word.toLowerCase());
         });
-
-        this.loaded = true;
     },
 
     isKnownWord(word) {

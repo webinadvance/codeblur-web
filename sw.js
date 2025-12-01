@@ -1,4 +1,7 @@
-const CACHE_NAME = 'codeblur-v1';
+// AUTO-UPDATED BY CI - DO NOT EDIT MANUALLY
+const APP_VERSION = '2025.1.0';
+const BUILD_NUMBER = 0;
+const CACHE_NAME = `codeblur-${APP_VERSION}`;
 const urlsToCache = [
   '/',
   '/index.html',

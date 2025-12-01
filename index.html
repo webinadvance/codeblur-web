@@ -92,8 +92,9 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1 class="title">CODEBLUR<span class="version"><span class="version-year">2025</span>.1</span></h1>
+            <h1 class="title">CODEBLUR<span class="version"><span id="app-version">2025.1.0</span></span></h1>
             <span class="tagline">NEVER EXPOSE YOUR CODE AGAIN</span>
+            <span class="word-count"><span id="dict-count">0</span> WORDS</span>
             <span class="edition-stripe">AI EDITION</span>
             <a href="https://github.com/webinadvance/codeblur" target="_blank" rel="noopener noreferrer" class="github-link" aria-label="View on GitHub">
                 <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true">
@@ -170,6 +171,7 @@ Mappings persist across pastes and sessions"></textarea>
         </div>
     </div>
 
+    <script src="js/words_data.js"></script>
     <script src="js/dictionaries.js"></script>
     <script src="js/app.js"></script>
 

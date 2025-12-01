@@ -115,15 +115,13 @@ body {
 }
 
 .version {
-    color: var(--gray-dark);
-    font-weight: 400;
-    margin-left: 6px;
-    font-size: 0.7em;
-}
-
-.version-year {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.45em;
+    font-weight: 500;
     color: var(--accent);
-    font-weight: 700;
+    vertical-align: middle;
+    margin-left: 12px;
 }
 
 .tagline {
@@ -134,6 +132,20 @@ body {
     letter-spacing: 1px;
     color: var(--gray-light);
     margin-left: 12px;
+}
+
+.word-count {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-left: 12px;
+}
+
+.word-count #dict-count {
+    font-weight: 700;
 }
 
 .edition-stripe {
