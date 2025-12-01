@@ -286,11 +286,11 @@ class CodeBlur {
                 this.removeEmptyLines();
                 break;
             case 'ANON':
-                // Strings/guids/paths/numbers + composite identifiers
-                this.obfuscateStrings();
+                // GUIDs/paths/numbers first (specific patterns), then strings (catch-all)
                 this.obfuscateGuids();
                 this.obfuscatePaths();
                 this.obfuscateNumbers();
+                this.obfuscateStrings();
                 this.anonymizeMembers();
                 break;
             case 'NUKE':
