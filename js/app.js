@@ -995,67 +995,40 @@ class CodeBlur {
         const sortedMappings = Object.entries(this.mappings)
             .sort((a, b) => b[1].length - a[1].length);
 
-        // Keep replacing until no more changes (handles nested/combined obfuscations)
-        let prevText;
+        // Keep replacing until obfuscation reaches 0%
         let passes = 0;
-        const maxPasses = 10; // Safety limit
+        const maxPasses = 50; // Safety limit
 
         do {
-            prevText = text;
+            // Apply all mappings
             for (const [original, obfuscated] of sortedMappings) {
-                // Escape special regex characters in obfuscated string
                 const escaped = obfuscated.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                // Use word boundary matching to avoid partial replacements
                 const regex = new RegExp(`\\b${escaped}\\b`, 'g');
                 text = text.replace(regex, original);
             }
             passes++;
-        } while (text !== prevText && passes < maxPasses);
 
-        // If no changes were made (second click), do force reveal - strip orphaned obfuscation patterns
-        if (text === originalText) {
-            text = this.forceReveal(text);
-            if (text !== originalText) {
-                this.editor.value = text;
-                this.updateObfuscationPercent();
-                this.updateHighlighting();
-                this.showToast('Force revealed orphaned patterns', 'success');
-                return;
+            // Update editor to calculate current obfuscation %
+            this.editor.value = text;
+            const percent = this.calculateObfuscationPercent();
+
+            // Stop if we reached 0% or hit max passes
+            if (percent === 0 || passes >= maxPasses) {
+                break;
             }
+        } while (true);
+
+        if (text === originalText) {
             this.showToast('Nothing to reveal', 'info');
             return;
         }
 
-        this.editor.value = text;
         // Reset to BLUR level
         this.currentLevel = 0;
         this.updateLevelDisplay();
         this.updateObfuscationPercent();
         this.updateHighlighting();
         this.showToast('Text revealed', 'success');
-    }
-
-    forceReveal(text) {
-        // Build pattern from all style prefixes to find orphaned obfuscation
-        const allPrefixes = new Set();
-        Object.values(this.STYLE_PRESETS).forEach(style => {
-            style.prefixes.forEach(p => allPrefixes.add(p));
-            allPrefixes.add(style.comment);
-            allPrefixes.add(style.guid);
-            allPrefixes.add(style.path);
-            allPrefixes.add(style.func);
-            allPrefixes.add(style.prop);
-            allPrefixes.add(style.field);
-        });
-        const prefixPattern = Array.from(allPrefixes).join('|');
-        // Match any obfuscation-like pattern (PREFIX + digits)
-        const orphanedPattern = new RegExp(`\\b(${prefixPattern})(\\d+)\\b`, 'g');
-
-        // Replace orphaned patterns with a generic placeholder
-        return text.replace(orphanedPattern, (match, prefix, num) => {
-            // Use lowercase prefix as replacement to indicate it was force-revealed
-            return `${prefix.toLowerCase()}${num}`;
-        });
     }
 
     // ============================================
