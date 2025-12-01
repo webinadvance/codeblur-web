@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Generate PWA Icons</title>
+</head>
+<body>
+    <h2>Generating icons...</h2>
+    <canvas id="canvas"></canvas>
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        sizes.forEach(size => {
+            canvas.width = size;
+            canvas.height = size;
+
+            // Background
+            ctx.fillStyle = '#00d4ff';
+            ctx.fillRect(0, 0, size, size);
+
+            // Inner square
+            const padding = size * 0.1;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(padding, padding, size - 2*padding, size - 2*padding);
+
+            // Code brackets and lines
+            ctx.strokeStyle = '#00d4ff';
+            ctx.fillStyle = '#00d4ff';
+            ctx.lineWidth = size * 0.03;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Left bracket
+            ctx.beginPath();
+            ctx.moveTo(size * 0.27, size * 0.35);
+            ctx.lineTo(size * 0.20, size * 0.50);
+            ctx.lineTo(size * 0.27, size * 0.65);
+            ctx.stroke();
+
+            // Right bracket
+            ctx.beginPath();
+            ctx.moveTo(size * 0.73, size * 0.35);
+            ctx.lineTo(size * 0.80, size * 0.50);
+            ctx.lineTo(size * 0.73, size * 0.65);
+            ctx.stroke();
+
+            // Blur lines
+            const lineHeight = size * 0.024;
+            ctx.fillRect(size * 0.35, size * 0.39, size * 0.16, lineHeight);
+            ctx.fillRect(size * 0.35, size * 0.49, size * 0.30, lineHeight);
+            ctx.fillRect(size * 0.35, size * 0.59, size * 0.23, lineHeight);
+
+            // Download
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `icon-${size}x${size}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        });
+
+        document.body.innerHTML = '<h2>Icons generated! Check your downloads folder.</h2><p>Move all icon-*.png files to the icons/ directory.</p>';
+    </script>
+</body>
+</html>

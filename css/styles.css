@@ -834,3 +834,76 @@ body {
 .pop {
     animation: pop 0.2s ease-out;
 }
+
+/* ============================================
+   PWA INSTALL BANNER
+   ============================================ */
+.install-banner {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    background: var(--accent);
+    border: var(--border-thick);
+    box-shadow: var(--shadow-xl);
+    padding: 16px 24px;
+    max-width: 90%;
+    animation: slideUp 0.3s ease-out;
+}
+
+.install-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.install-text {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--black);
+}
+
+.install-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.install-banner .btn {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateX(-50%) translateY(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .install-banner {
+        bottom: 10px;
+        padding: 12px 16px;
+    }
+
+    .install-content {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .install-buttons {
+        width: 100%;
+    }
+
+    .install-banner .btn {
+        flex: 1;
+    }
+}

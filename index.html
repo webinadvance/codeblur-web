@@ -78,6 +78,14 @@
     }
     </script>
 
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- iOS Support -->
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <link rel="stylesheet" href="css/styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%2300d4ff'/><rect x='10' y='10' width='80' height='80' fill='%23000' stroke='%23000' stroke-width='4'/></svg>">
 </head>
@@ -151,7 +159,70 @@ Mappings persist across pastes and sessions"></textarea>
 
     <div id="toast" class="toast"></div>
 
+    <!-- PWA Install Banner -->
+    <div id="installBanner" class="install-banner" style="display: none;">
+        <div class="install-content">
+            <span class="install-text">📱 Install CodeBlur App</span>
+            <div class="install-buttons">
+                <button id="installAccept" class="btn btn-accent">INSTALL</button>
+                <button id="installDismiss" class="btn btn-gray-light">LATER</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/dictionaries.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- PWA Install & Service Worker -->
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+
+        // PWA Install Banner
+        let deferredPrompt;
+        const installBanner = document.getElementById('installBanner');
+        const installAccept = document.getElementById('installAccept');
+        const installDismiss = document.getElementById('installDismiss');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show banner after 3 seconds
+            setTimeout(() => {
+                installBanner.style.display = 'block';
+            }, 3000);
+        });
+
+        installAccept.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log('Install outcome:', outcome);
+                deferredPrompt = null;
+                installBanner.style.display = 'none';
+            }
+        });
+
+        installDismiss.addEventListener('click', () => {
+            installBanner.style.display = 'none';
+            deferredPrompt = null;
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installed');
+            installBanner.style.display = 'none';
+        });
+    </script>
 </body>
 </html>

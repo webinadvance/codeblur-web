@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#00d4ff"/>
+  <rect x="51.2" y="51.2" width="409.6" height="409.6" fill="#000"/>
+  <g fill="#00d4ff">
+    <!-- Code brackets -->
+    <path d="M140 180 L100 256 L140 332" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M372 180 L412 256 L372 332" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Blur effect lines -->
+    <rect x="180" y="200" width="80" height="12" rx="6"/>
+    <rect x="180" y="250" width="152" height="12" rx="6"/>
+    <rect x="180" y="300" width="120" height="12" rx="6"/>
+  </g>
+</svg>

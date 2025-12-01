@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Installation Test</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #000;
+            color: #0f0;
+        }
+        .status { margin: 10px 0; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        button {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>PWA Installation Test</h1>
+    <div id="results"></div>
+    <button id="installBtn" style="display:none">Install App</button>
+
+    <script>
+        const results = document.getElementById('results');
+        const installBtn = document.getElementById('installBtn');
+        let deferredPrompt;
+
+        function log(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = isError ? 'status error' : 'status success';
+            div.textContent = message;
+            results.appendChild(div);
+        }
+
+        // Check HTTPS
+        log('Protocol: ' + window.location.protocol);
+        if (window.location.protocol === 'https:') {
+            log('✓ HTTPS enabled');
+        } else {
+            log('✗ HTTPS required', true);
+        }
+
+        // Check manifest
+        fetch('/manifest.json')
+            .then(response => response.json())
+            .then(data => {
+                log('✓ Manifest loaded');
+                log('Name: ' + data.name);
+                log('Icons: ' + data.icons.length);
+
+                // Check required icons
+                const has192 = data.icons.some(i => i.sizes === '192x192');
+                const has512 = data.icons.some(i => i.sizes === '512x512');
+
+                if (has192 && has512) {
+                    log('✓ Required icons (192px & 512px) present');
+                } else {
+                    log('✗ Missing required icon sizes', true);
+                }
+            })
+            .catch(err => log('✗ Manifest error: ' + err, true));
+
+        // Check Service Worker
+        if ('serviceWorker' in navigator) {
+            log('✓ Service Worker supported');
+
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    log('✓ Service Worker registered');
+                    log('Scope: ' + registration.scope);
+                })
+                .catch(err => log('✗ SW registration failed: ' + err, true));
+        } else {
+            log('✗ Service Worker not supported', true);
+        }
+
+        // Listen for install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            log('✓ Install prompt available!');
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                log('Install outcome: ' + outcome);
+                deferredPrompt = null;
+                installBtn.style.display = 'none';
+            }
+        });
+
+        // Check if already installed
+        window.addEventListener('appinstalled', () => {
+            log('✓ App installed!');
+        });
+
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            log('✓ Running as installed app');
+        }
+    </script>
+</body>
+</html>

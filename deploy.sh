@@ -10,13 +10,6 @@ echo "🚀 Starting deployment for codeblur.dev..."
 # Variables
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_ROOT="/var/www/codeblur.dev"
-BACKUP_DIR="/var/www/codeblur.dev.backup.$(date +%Y%m%d_%H%M%S)"
-
-# Create backup of current site
-if [ -d "$WEB_ROOT" ]; then
-    echo "📦 Creating backup at $BACKUP_DIR..."
-    cp -r "$WEB_ROOT" "$BACKUP_DIR"
-fi
 
 # Remove old files (except .git)
 echo "🧹 Cleaning web root..."
@@ -27,8 +20,11 @@ echo "📂 Copying files to $WEB_ROOT..."
 cp -r "$SCRIPT_DIR"/*.html "$WEB_ROOT/" 2>/dev/null || true
 cp -r "$SCRIPT_DIR"/*.txt "$WEB_ROOT/" 2>/dev/null || true
 cp -r "$SCRIPT_DIR"/*.xml "$WEB_ROOT/" 2>/dev/null || true
+cp -r "$SCRIPT_DIR"/*.json "$WEB_ROOT/" 2>/dev/null || true
+cp -r "$SCRIPT_DIR"/*.js "$WEB_ROOT/" 2>/dev/null || true
 cp -r "$SCRIPT_DIR"/css "$WEB_ROOT/" 2>/dev/null || true
 cp -r "$SCRIPT_DIR"/js "$WEB_ROOT/" 2>/dev/null || true
+cp -r "$SCRIPT_DIR"/icons "$WEB_ROOT/" 2>/dev/null || true
 
 # Set proper permissions
 echo "🔐 Setting permissions..."
@@ -46,4 +42,3 @@ systemctl reload nginx
 
 echo "✅ Deployment completed successfully!"
 echo "🌐 Site is live at https://codeblur.dev"
-echo "📦 Backup saved at $BACKUP_DIR"
