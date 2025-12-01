@@ -1,6 +1,58 @@
 /* CodeBlur Web - Authentic Neubrutalist Design */
 /* Inspired by: neobrutalism.dev, Figma, Gumroad */
 
+/* Update Banner */
+.update-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--accent);
+    color: #000;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-bottom: 3px solid #000;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+.update-banner button {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 6px 14px;
+    border: 2px solid #000;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.update-banner button:hover {
+    transform: translate(-2px, -2px);
+}
+
+.update-banner #update-btn {
+    background: #000;
+    color: #fff;
+}
+
+.update-banner .dismiss {
+    background: transparent;
+    color: #000;
+    padding: 4px 10px;
+    font-size: 1.2rem;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap');
 
 * {

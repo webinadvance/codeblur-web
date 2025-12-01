@@ -90,6 +90,13 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%2300d4ff'/><rect x='10' y='10' width='80' height='80' fill='%23000' stroke='%23000' stroke-width='4'/></svg>">
 </head>
 <body>
+    <!-- Update Banner -->
+    <div id="update-banner" class="update-banner" style="display: none;">
+        <span>New version available!</span>
+        <button id="update-btn">Update now</button>
+        <button id="dismiss-btn" class="dismiss">&times;</button>
+    </div>
+
     <div class="container">
         <header class="header">
             <h1 class="title">CODEBLUR<span class="version"><span id="app-version">2025.1.1</span></h1>
@@ -177,16 +184,59 @@ Mappings persist across pastes and sessions"></textarea>
 
     <!-- PWA Install & Service Worker -->
     <script>
-        // Service Worker Registration
+        // Service Worker Registration with Update Detection
+        let newWorker;
+        const updateBanner = document.getElementById('update-banner');
+        const updateBtn = document.getElementById('update-btn');
+        const dismissBtn = document.getElementById('dismiss-btn');
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(registration => {
                         console.log('ServiceWorker registered:', registration.scope);
+
+                        // Check for updates immediately
+                        registration.update();
+
+                        // Check for updates every 60 seconds
+                        setInterval(() => registration.update(), 60000);
+
+                        // Detect new service worker waiting
+                        registration.addEventListener('updatefound', () => {
+                            newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New version available - show banner
+                                    updateBanner.style.display = 'flex';
+                                }
+                            });
+                        });
                     })
                     .catch(error => {
                         console.log('ServiceWorker registration failed:', error);
                     });
+
+                // Reload page when new service worker takes over
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    window.location.reload();
+                });
+            });
+        }
+
+        // Update button click - activate new service worker
+        if (updateBtn) {
+            updateBtn.addEventListener('click', () => {
+                if (newWorker) {
+                    newWorker.postMessage('SKIP_WAITING');
+                }
+            });
+        }
+
+        // Dismiss button click - hide banner
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                updateBanner.style.display = 'none';
             });
         }
 
