@@ -741,10 +741,13 @@ class CodeBlur {
             return obfuscatedPattern.test(word); // contains A001, D001, etc.
         });
 
+        console.log('ANON - Found composites:', composites);
+
         // Sort by length (longest first) and replace all
         composites.sort((a, b) => b.length - a.length);
         for (const word of composites) {
             const placeholder = this.getOrCreateMapping(word);
+            console.log(`ANON - Replacing "${word}" with "${placeholder}"`);
             text = this.replaceWholeWord(text, word, placeholder);
         }
 

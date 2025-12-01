@@ -156,15 +156,35 @@ function getObfuscationPercent(text) {
 
 console.log('=== FULL FLOW TEST ===\n');
 
-// Multiple code snippets to blur separately
+// Multiple code snippets to blur separately (TypeScript-like)
 const codeSnippets = [
-    `public class UserPrenotaCorsi {
-    private string NomeUtente;
+    `import { UserPrenotaCorsi } from './services/PrenotaCorsiService';
+import { PrenotaCorsiConfig } from '../config/PrenotaCorsiConfig';`,
+
+    `export class PrenotaCorsiManager {
+    private prenotaCorsiCache: Map<string, PrenotaCorsi>;
+    private configPrenotaCorsi: PrenotaCorsiConfig;
+
+    constructor(optionsPrenotaCorsi: PrenotaCorsiOptions) {
+        this.prenotaCorsiCache = new Map();
+    }
 }`,
-    `public void GetPrenotaCorsiById(int idCorso) {
-    return FetchPrenotaCorsi(idCorso);
+
+    `async function fetchPrenotaCorsiData(idPrenotaCorsi: string): Promise<PrenotaCorsiResult> {
+    const responsePrenotaCorsi = await apiPrenotaCorsi.get(idPrenotaCorsi);
+    return parsePrenotaCorsiResponse(responsePrenotaCorsi);
 }`,
-    `var risultatoPrenotaCorsi = ProcessPrenotaCorsi(dataPrenotaCorsi);`
+
+    `const handlePrenotaCorsiSubmit = (eventPrenotaCorsi: FormEvent) => {
+    const dataPrenotaCorsi = validatePrenotaCorsiForm(eventPrenotaCorsi);
+    submitPrenotaCorsi(dataPrenotaCorsi);
+};`,
+
+    `interface IPrenotaCorsiRepository {
+    getPrenotaCorsiById(id: string): PrenotaCorsi;
+    savePrenotaCorsi(item: PrenotaCorsi): void;
+    deletePrenotaCorsi(id: string): boolean;
+}`
 ];
 
 console.log('STEP 1: Blur each snippet separately\n');
