@@ -441,21 +441,14 @@ class CodeBlur {
     }
 
     containsObfuscatedPart(word) {
-        // Check if word contains an obfuscated pattern (e.g., NAME01MyData)
-        const allPrefixes = new Set();
-        Object.values(this.STYLE_PRESETS).forEach(style => {
-            style.prefixes.forEach(p => allPrefixes.add(p));
-            allPrefixes.add(style.comment);
-            allPrefixes.add(style.guid);
-            allPrefixes.add(style.path);
-            allPrefixes.add(style.func);
-            allPrefixes.add(style.prop);
-            allPrefixes.add(style.field);
-        });
-        const prefixPattern = Array.from(allPrefixes).join('|');
-        // Match if word contains PREFIX + digits anywhere (not just exact match)
-        const pattern = new RegExp(`(${prefixPattern})\\d+`);
-        return pattern.test(word);
+        // Check if word contains any obfuscated value from our mappings
+        // This is the most reliable way - check against actual mapped values
+        for (const obfuscated of Object.values(this.mappings)) {
+            if (word.includes(obfuscated) && word !== obfuscated) {
+                return true;
+            }
+        }
+        return false;
     }
 
     replaceWholeWord(text, search, replace) {
@@ -784,6 +777,10 @@ class CodeBlur {
     }
 
     shouldSkipMethod(name) {
+        // Never skip if name contains obfuscated parts - these MUST be fully obfuscated
+        if (this.containsObfuscatedPart(name)) {
+            return false;
+        }
         return this.skipMethods.has(name.toLowerCase()) ||
             this.isObfuscatedIdentifier(name) ||
             Dictionaries.isKnownWord(name);
