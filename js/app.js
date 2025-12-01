@@ -768,6 +768,27 @@ class CodeBlur {
     // LEVEL 4: ANON - Obfuscate All Composite Identifiers
     // ============================================
 
+    // Expand obfuscated parts in a word back to their originals
+    // e.g., "A001Manager" -> "UserManager" (if User -> A001 exists)
+    expandToOriginal(word) {
+        // Build reverse mapping: obfuscated -> original
+        const reverseMap = {};
+        for (const [original, obfuscated] of Object.entries(this.mappings)) {
+            reverseMap[obfuscated] = original;
+        }
+
+        // Sort by length (longest first) to avoid partial matches
+        const sortedObfuscated = Object.keys(reverseMap).sort((a, b) => b.length - a.length);
+
+        let expanded = word;
+        for (const obfuscated of sortedObfuscated) {
+            if (expanded.includes(obfuscated)) {
+                expanded = expanded.split(obfuscated).join(reverseMap[obfuscated]);
+            }
+        }
+        return expanded;
+    }
+
     anonymizeMembers() {
         let text = this.editor.value;
 
@@ -793,7 +814,11 @@ class CodeBlur {
         // Sort by length (longest first) and replace all
         composites.sort((a, b) => b.length - a.length);
         for (const word of composites) {
-            const placeholder = this.getOrCreateMapping(word);
+            // IMPORTANT: Expand to original form before storing mapping
+            // e.g., "A001Manager" -> store "UserManager" -> "B001"
+            // This ensures reveal works in one pass without nested lookups
+            const expandedOriginal = this.expandToOriginal(word);
+            const placeholder = this.getOrCreateMapping(expandedOriginal);
             text = this.replaceWholeWord(text, word, placeholder);
         }
 
