@@ -989,6 +989,7 @@ class CodeBlur {
     deobfuscate() {
         this.saveUndoState();
         let text = this.editor.value;
+        const originalText = text;
 
         // Sort mappings by obfuscated value length (longest first) to avoid partial replacements
         const sortedMappings = Object.entries(this.mappings)
@@ -1011,6 +1012,20 @@ class CodeBlur {
             passes++;
         } while (text !== prevText && passes < maxPasses);
 
+        // If no changes were made (second click), do force reveal - strip orphaned obfuscation patterns
+        if (text === originalText) {
+            text = this.forceReveal(text);
+            if (text !== originalText) {
+                this.editor.value = text;
+                this.updateObfuscationPercent();
+                this.updateHighlighting();
+                this.showToast('Force revealed orphaned patterns', 'success');
+                return;
+            }
+            this.showToast('Nothing to reveal', 'info');
+            return;
+        }
+
         this.editor.value = text;
         // Reset to BLUR level
         this.currentLevel = 0;
@@ -1018,6 +1033,29 @@ class CodeBlur {
         this.updateObfuscationPercent();
         this.updateHighlighting();
         this.showToast('Text revealed', 'success');
+    }
+
+    forceReveal(text) {
+        // Build pattern from all style prefixes to find orphaned obfuscation
+        const allPrefixes = new Set();
+        Object.values(this.STYLE_PRESETS).forEach(style => {
+            style.prefixes.forEach(p => allPrefixes.add(p));
+            allPrefixes.add(style.comment);
+            allPrefixes.add(style.guid);
+            allPrefixes.add(style.path);
+            allPrefixes.add(style.func);
+            allPrefixes.add(style.prop);
+            allPrefixes.add(style.field);
+        });
+        const prefixPattern = Array.from(allPrefixes).join('|');
+        // Match any obfuscation-like pattern (PREFIX + digits)
+        const orphanedPattern = new RegExp(`\\b(${prefixPattern})(\\d+)\\b`, 'g');
+
+        // Replace orphaned patterns with a generic placeholder
+        return text.replace(orphanedPattern, (match, prefix, num) => {
+            // Use lowercase prefix as replacement to indicate it was force-revealed
+            return `${prefix.toLowerCase()}${num}`;
+        });
     }
 
     // ============================================
