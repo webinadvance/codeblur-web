@@ -995,28 +995,15 @@ class CodeBlur {
         const sortedMappings = Object.entries(this.mappings)
             .sort((a, b) => b[1].length - a[1].length);
 
-        // Keep replacing until obfuscation reaches 0%
-        let passes = 0;
-        const maxPasses = 50; // Safety limit
+        // Single pass - apply all mappings once per click
+        for (const [original, obfuscated] of sortedMappings) {
+            const escaped = obfuscated.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`\\b${escaped}\\b`, 'g');
+            text = text.replace(regex, original);
+        }
 
-        do {
-            // Apply all mappings
-            for (const [original, obfuscated] of sortedMappings) {
-                const escaped = obfuscated.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`\\b${escaped}\\b`, 'g');
-                text = text.replace(regex, original);
-            }
-            passes++;
-
-            // Update editor to calculate current obfuscation %
-            this.editor.value = text;
-            const percent = this.calculateObfuscationPercent();
-
-            // Stop if we reached 0% or hit max passes
-            if (percent === 0 || passes >= maxPasses) {
-                break;
-            }
-        } while (true);
+        this.editor.value = text;
+        const percent = this.calculateObfuscationPercent();
 
         if (text === originalText) {
             this.showToast('Nothing to reveal', 'info');
@@ -1028,7 +1015,12 @@ class CodeBlur {
         this.updateLevelDisplay();
         this.updateObfuscationPercent();
         this.updateHighlighting();
-        this.showToast('Text revealed', 'success');
+
+        if (percent > 0) {
+            this.showToast(`Revealed (${percent}% remaining - click again)`, 'success');
+        } else {
+            this.showToast('Text revealed', 'success');
+        }
     }
 
     // ============================================
