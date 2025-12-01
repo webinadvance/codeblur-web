@@ -25,6 +25,7 @@ jobs:
         run: |
           node test-anon.js
           node test-full-flow.js
+          node test-comprehensive.js
 
   bump-version:
     runs-on: ubuntu-latest

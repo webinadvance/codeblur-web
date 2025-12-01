@@ -799,14 +799,11 @@ body {
    DECORATIVE ELEMENTS
    ============================================ */
 
-/* Highlighted text marker */
+/* Highlighted text marker - no padding/margin to keep text aligned */
 .highlight-obfuscated {
     background-color: var(--accent);
     color: var(--black);
-    padding: 2px 6px;
     font-weight: 700;
-    border: 2px solid var(--black);
-    box-shadow: 2px 2px 0 var(--black);
 }
 
 
