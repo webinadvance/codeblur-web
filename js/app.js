@@ -442,12 +442,36 @@ class CodeBlur {
 
     containsObfuscatedPart(word) {
         // Check if word contains any obfuscated value from our mappings
-        // This is the most reliable way - check against actual mapped values
         for (const obfuscated of Object.values(this.mappings)) {
             if (word.includes(obfuscated) && word !== obfuscated) {
                 return true;
             }
         }
+
+        // Also check against obfuscation pattern directly (PREFIX + digits)
+        // This catches cases where mapping might be structured differently
+        const allPrefixes = new Set();
+        Object.values(this.STYLE_PRESETS).forEach(style => {
+            style.prefixes.forEach(p => allPrefixes.add(p));
+            allPrefixes.add(style.comment);
+            allPrefixes.add(style.guid);
+            allPrefixes.add(style.path);
+            allPrefixes.add(style.func);
+            allPrefixes.add(style.prop);
+            allPrefixes.add(style.field);
+        });
+
+        // Sort by length (longest first) to match longer prefixes first
+        const sortedPrefixes = Array.from(allPrefixes).sort((a, b) => b.length - a.length);
+
+        for (const prefix of sortedPrefixes) {
+            // Check if word contains PREFIX followed by digits (like A001, PERSON001)
+            const pattern = new RegExp(`${prefix}\\d{2,}`);
+            if (pattern.test(word) && !this.isObfuscatedIdentifier(word)) {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -692,131 +716,39 @@ class CodeBlur {
     }
 
     // ============================================
-    // LEVEL 4: ANON - Member Anonymization
+    // LEVEL 4: ANON - Obfuscate All Composite Identifiers
     // ============================================
 
     anonymizeMembers() {
         let text = this.editor.value;
 
-        // C# method patterns
-        // public void MethodName() or private async Task<T> MethodName()
-        const csharpMethodPattern = /\b(public|private|protected|internal|static|virtual|override|abstract|async|sealed|\s)+\s+(\w+(?:<[^>]+>)?)\s+(\w+)\s*\(/g;
+        // Get all unique words in text
+        const words = [...new Set(text.match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) || [])];
 
-        text = text.replace(csharpMethodPattern, (match, modifiers, returnType, methodName, offset) => {
-            if (this.shouldSkipMethod(methodName)) return match;
-            const newName = this.getMethodPlaceholder(methodName);
-            return match.replace(methodName + '(', newName + '(');
+        // Build pattern to detect obfuscated parts (PREFIX + 2+ digits)
+        const allPrefixes = [];
+        Object.values(this.STYLE_PRESETS).forEach(style => {
+            style.prefixes.forEach(p => allPrefixes.push(p));
+            allPrefixes.push(style.comment, style.guid, style.path, style.func, style.prop, style.field);
+        });
+        // Sort longest first
+        allPrefixes.sort((a, b) => b.length - a.length);
+        const obfuscatedPattern = new RegExp(`(${allPrefixes.join('|')})\\d{2,}`);
+
+        // Find composites: words containing obfuscated pattern but NOT fully obfuscated
+        const composites = words.filter(word => {
+            if (this.isObfuscatedIdentifier(word)) return false; // skip pure A001, PERSON001
+            return obfuscatedPattern.test(word); // contains A001, D001, etc.
         });
 
-        // C# property patterns
-        // public string PropertyName { get; set; }
-        const csharpPropertyPattern = /\b(public|private|protected|internal|static|virtual|override|abstract|\s)+\s+(\w+(?:<[^>]+>)?(?:\[\])?)\s+(\w+)\s*(\{|=>)/g;
-
-        text = text.replace(csharpPropertyPattern, (match, modifiers, type, propName, bracket) => {
-            // Skip if it looks like a method or class
-            if (bracket === '(') return match;
-            if (this.shouldSkipMethod(propName)) return match;
-            const newName = this.getPropertyPlaceholder(propName);
-            return match.replace(new RegExp(`\\b${propName}\\s*(\\{|=>)`), `${newName} ${bracket}`);
-        });
-
-        // C# field patterns
-        // private readonly string _fieldName;
-        const csharpFieldPattern = /\b(private|protected|internal|public|static|readonly|const|\s)+\s+(\w+(?:<[^>]+>)?(?:\[\])?)\s+(_?\w+)\s*(;|=)/g;
-
-        text = text.replace(csharpFieldPattern, (match, modifiers, type, fieldName, ending) => {
-            if (this.shouldSkipMethod(fieldName)) return match;
-            if (fieldName.startsWith('_')) {
-                const newName = this.getFieldPlaceholder(fieldName);
-                return match.replace(fieldName, newName);
-            }
-            return match;
-        });
-
-        // TypeScript/JavaScript method patterns
-        // async methodName() or private methodName()
-        const tsMethodPattern = /\b(public|private|protected|static|async|\s)*\s*(\w+)\s*\([^)]*\)\s*(\{|:)/g;
-
-        text = text.replace(tsMethodPattern, (match, modifiers, methodName, bracket) => {
-            if (this.shouldSkipMethod(methodName)) return match;
-            // Skip constructor
-            if (methodName === 'constructor') return match;
-            const newName = this.getMethodPlaceholder(methodName);
-            return match.replace(new RegExp(`\\b${methodName}\\s*\\(`), `${newName}(`);
-        });
-
-        // Obfuscate composite identifiers containing obfuscated parts (e.g., NAME01MyData)
-        text = this.obfuscateCompositeIdentifiers(text);
+        // Sort by length (longest first) and replace all
+        composites.sort((a, b) => b.length - a.length);
+        for (const word of composites) {
+            const placeholder = this.getOrCreateMapping(word);
+            text = this.replaceWholeWord(text, word, placeholder);
+        }
 
         this.editor.value = text;
-    }
-
-    obfuscateCompositeIdentifiers(text) {
-        // Find all identifiers that contain obfuscated parts but aren't fully obfuscated
-        const identifierPattern = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
-        const processed = new Set();
-        let match;
-
-        while ((match = identifierPattern.exec(text)) !== null) {
-            const identifier = match[1];
-            if (processed.has(identifier)) continue;
-            processed.add(identifier);
-
-            // Skip if already fully obfuscated or too short
-            if (this.isObfuscatedIdentifier(identifier)) continue;
-            if (identifier.length < 2) continue;
-
-            // Check if it contains an obfuscated part (composite)
-            if (this.containsObfuscatedPart(identifier)) {
-                const placeholder = this.getOrCreateMapping(identifier);
-                text = this.replaceWholeWord(text, identifier, placeholder);
-            }
-        }
-
-        return text;
-    }
-
-    shouldSkipMethod(name) {
-        // Never skip if name contains obfuscated parts - these MUST be fully obfuscated
-        if (this.containsObfuscatedPart(name)) {
-            return false;
-        }
-        return this.skipMethods.has(name.toLowerCase()) ||
-            this.isObfuscatedIdentifier(name) ||
-            Dictionaries.isKnownWord(name);
-    }
-
-    getMethodPlaceholder(name) {
-        if (this.mappings[name]) {
-            return this.mappings[name];
-        }
-        const prefix = this.getStyle().func;
-        this.counters[prefix] = (this.counters[prefix] || 0) + 1;
-        const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
-        this.mappings[name] = placeholder;
-        return placeholder;
-    }
-
-    getPropertyPlaceholder(name) {
-        if (this.mappings[name]) {
-            return this.mappings[name];
-        }
-        const prefix = this.getStyle().prop;
-        this.counters[prefix] = (this.counters[prefix] || 0) + 1;
-        const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
-        this.mappings[name] = placeholder;
-        return placeholder;
-    }
-
-    getFieldPlaceholder(name) {
-        if (this.mappings[name]) {
-            return this.mappings[name];
-        }
-        const prefix = this.getStyle().field;
-        this.counters[prefix] = (this.counters[prefix] || 0) + 1;
-        const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
-        this.mappings[name] = placeholder;
-        return placeholder;
     }
 
     // ============================================
