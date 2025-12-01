@@ -30,6 +30,9 @@ class CodeBlur {
         // Current style (default: minimal)
         this.currentStyle = 'minimal';
 
+        // Number obfuscation threshold (0 = never, 3+ = obfuscate numbers with 3+ digits)
+        this.numberThreshold = 4;
+
         // Mappings storage
         this.mappings = {};
         this.counters = {};
@@ -51,6 +54,7 @@ class CodeBlur {
         this.blurBtn = document.getElementById('blurBtn');
         this.clearBtn = document.getElementById('clearBtn');
         this.anonStyleSelect = document.getElementById('anonStyle');
+        this.numberThresholdSelect = document.getElementById('numberThreshold');
         this.tokenCount = document.getElementById('tokenCount');
         this.includePromptCheckbox = document.getElementById('includePrompt');
 
@@ -121,10 +125,23 @@ class CodeBlur {
             this.anonStyleSelect.value = savedStyle;
         }
         this.initCounters();
+        this.loadSettings();
     }
 
     saveStyle() {
         localStorage.setItem('codeblur_style', this.currentStyle);
+    }
+
+    loadSettings() {
+        const savedThreshold = localStorage.getItem('codeblur_number_threshold');
+        if (savedThreshold !== null) {
+            this.numberThreshold = parseInt(savedThreshold, 10);
+            this.numberThresholdSelect.value = savedThreshold;
+        }
+    }
+
+    saveSettings() {
+        localStorage.setItem('codeblur_number_threshold', this.numberThreshold.toString());
     }
 
     setupEventListeners() {
@@ -143,6 +160,14 @@ class CodeBlur {
             this.initCounters();
             this.saveStyle();
             this.showToast(`Style: ${this.currentStyle.toUpperCase()}`, 'info');
+        });
+
+        // Number threshold selector
+        this.numberThresholdSelect.addEventListener('change', (e) => {
+            this.numberThreshold = parseInt(e.target.value, 10);
+            this.saveSettings();
+            const msg = this.numberThreshold === 0 ? 'Numbers: NEVER' : `Numbers: ${this.numberThreshold}+ digits`;
+            this.showToast(msg, 'info');
         });
 
         // Keyboard shortcuts
@@ -261,10 +286,11 @@ class CodeBlur {
                 this.removeEmptyLines();
                 break;
             case 'ANON':
-                // Strings/guids/paths + composite identifiers
+                // Strings/guids/paths/numbers + composite identifiers
                 this.obfuscateStrings();
                 this.obfuscateGuids();
                 this.obfuscatePaths();
+                this.obfuscateNumbers();
                 this.anonymizeMembers();
                 break;
             case 'NUKE':
@@ -706,6 +732,38 @@ class CodeBlur {
         return placeholder;
     }
 
+    obfuscateNumbers() {
+        // Skip if threshold is 0 (never obfuscate numbers)
+        if (this.numberThreshold === 0) return;
+
+        let text = this.editor.value;
+
+        // Match numbers with threshold+ digits (integers and decimals)
+        // Avoid matching numbers that are part of identifiers (like A001)
+        const numberPattern = new RegExp(
+            `(?<![a-zA-Z_])\\b(\\d{${this.numberThreshold},}(?:\\.\\d+)?)\\b(?![a-zA-Z_])`,
+            'g'
+        );
+
+        text = text.replace(numberPattern, (match, num) => {
+            return this.getNumberPlaceholder(num);
+        });
+
+        this.editor.value = text;
+    }
+
+    getNumberPlaceholder(num) {
+        if (this.mappings[num]) {
+            return this.mappings[num];
+        }
+        // Use 'NUM' prefix for numbers
+        const prefix = 'NUM';
+        this.counters[prefix] = (this.counters[prefix] || 0) + 1;
+        const placeholder = `${prefix}${String(this.counters[prefix]).padStart(3, '0')}`;
+        this.mappings[num] = placeholder;
+        return placeholder;
+    }
+
     // ============================================
     // LEVEL 4: ANON - Obfuscate All Composite Identifiers
     // ============================================
@@ -732,13 +790,10 @@ class CodeBlur {
             return obfuscatedPattern.test(word); // contains A001, D001, etc.
         });
 
-        console.log('ANON - Found composites:', composites);
-
         // Sort by length (longest first) and replace all
         composites.sort((a, b) => b.length - a.length);
         for (const word of composites) {
             const placeholder = this.getOrCreateMapping(word);
-            console.log(`ANON - Replacing "${word}" with "${placeholder}"`);
             text = this.replaceWholeWord(text, word, placeholder);
         }
 
