@@ -440,6 +440,24 @@ class CodeBlur {
         return pattern.test(word);
     }
 
+    containsObfuscatedPart(word) {
+        // Check if word contains an obfuscated pattern (e.g., NAME01MyData)
+        const allPrefixes = new Set();
+        Object.values(this.STYLE_PRESETS).forEach(style => {
+            style.prefixes.forEach(p => allPrefixes.add(p));
+            allPrefixes.add(style.comment);
+            allPrefixes.add(style.guid);
+            allPrefixes.add(style.path);
+            allPrefixes.add(style.func);
+            allPrefixes.add(style.prop);
+            allPrefixes.add(style.field);
+        });
+        const prefixPattern = Array.from(allPrefixes).join('|');
+        // Match if word contains PREFIX + digits anywhere (not just exact match)
+        const pattern = new RegExp(`(${prefixPattern})\\d+`);
+        return pattern.test(word);
+    }
+
     replaceWholeWord(text, search, replace) {
         // Replace whole word only (not partial matches)
         const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -734,7 +752,35 @@ class CodeBlur {
             return match.replace(new RegExp(`\\b${methodName}\\s*\\(`), `${newName}(`);
         });
 
+        // Obfuscate composite identifiers containing obfuscated parts (e.g., NAME01MyData)
+        text = this.obfuscateCompositeIdentifiers(text);
+
         this.editor.value = text;
+    }
+
+    obfuscateCompositeIdentifiers(text) {
+        // Find all identifiers that contain obfuscated parts but aren't fully obfuscated
+        const identifierPattern = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
+        const processed = new Set();
+        let match;
+
+        while ((match = identifierPattern.exec(text)) !== null) {
+            const identifier = match[1];
+            if (processed.has(identifier)) continue;
+            processed.add(identifier);
+
+            // Skip if already fully obfuscated or too short
+            if (this.isObfuscatedIdentifier(identifier)) continue;
+            if (identifier.length < 2) continue;
+
+            // Check if it contains an obfuscated part (composite)
+            if (this.containsObfuscatedPart(identifier)) {
+                const placeholder = this.getOrCreateMapping(identifier);
+                text = this.replaceWholeWord(text, identifier, placeholder);
+            }
+        }
+
+        return text;
     }
 
     shouldSkipMethod(name) {
