@@ -1,6 +1,6 @@
 // AUTO-UPDATED BY CI - DO NOT EDIT MANUALLY
-const APP_VERSION = '2025.1.9';
-const BUILD_NUMBER = 9;
+const APP_VERSION = '2025.1.10';
+const BUILD_NUMBER = 10;
 const CACHE_NAME = `codeblur-${APP_VERSION}`;
 const urlsToCache = [
   '/',
