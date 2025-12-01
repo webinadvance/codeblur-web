@@ -50,7 +50,8 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add version.json sw.js index.html
-          git diff --staged --quiet || git commit -m "Bump version to build $(node -p \"require('./version.json').build\")"
+          VERSION=$(cat version.json | node -p "JSON.parse(require('fs').readFileSync(0)).version")
+          git diff --staged --quiet || git commit -m "Bump version to $VERSION"
           git push
 
   deploy:
