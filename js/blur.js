@@ -112,7 +112,6 @@ const Transform = {
     // Smart word blur with CamelCase support
     blurWord(word) {
         if (word.length < 3) return word;
-        if (word === word.toUpperCase() && word.length < 5) return word;
         // Skip if already obfuscated (fully or partially) - prevents circular mappings
         if (Mapper.isFullyObfuscated(word)) return word;
         if (Mapper.isObfuscated(word)) return word;
@@ -295,7 +294,6 @@ const Transform = {
             if (Mapper.isFullyObfuscated(word)) return word;
             if (Mapper.isObfuscated(word)) return word;
             if (this.isKnown(word)) return word;
-            if (word === word.toUpperCase() && word.length < 5) return word;
             return Mapper.get(word);
         });
 
