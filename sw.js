@@ -7,10 +7,7 @@ const urlsToCache = [
   '/index.html',
   '/css/styles.css',
   '/js/config.js',
-  '/js/mapper.js',
-  '/js/patterns.js',
-  '/js/transform.js',
-  '/js/levels.js',
+  '/js/blur.js',
   '/js/app.js',
   '/js/dictionaries.js',
   '/js/words_data.js'
