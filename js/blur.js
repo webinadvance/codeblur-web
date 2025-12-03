@@ -196,10 +196,110 @@ const Transform = {
     ].join('|'), 'g'),
 
     // ============================================
+    // COMMENTS & STRINGS - Obfuscate before main pass
+    // ============================================
+
+    // Comment patterns for various languages
+    COMMENT_PATTERN: new RegExp([
+        // Multi-line comments: /* ... */ (C, JS, Java, CSS, etc.)
+        '(/\\*[\\s\\S]*?\\*/)',
+        // Single-line comments: // (C, JS, Java, Go, etc.)
+        '(//[^\\n]*)',
+        // Hash comments: # (Python, Ruby, Shell, YAML, etc.)
+        '(#[^\\n]*)',
+        // HTML/XML comments: <!-- ... -->
+        '(<!--[\\s\\S]*?-->)',
+        // SQL comments: --
+        '(--[^\\n]*)',
+        // Lua/Haskell comments: --
+        // Already covered above
+        // PowerShell block comments: <# ... #>
+        '(<#[\\s\\S]*?#>)',
+        // Batch/CMD comments: REM or ::
+        '(^\\s*(?:REM|::)[^\\n]*)',
+        // MATLAB comments: %
+        '(%[^\\n]*)',
+    ].join('|'), 'gm'),
+
+    // String patterns - double and single quoted
+    STRING_PATTERN: new RegExp([
+        // Double-quoted strings (with escape handling)
+        '("(?:[^"\\\\]|\\\\.)*")',
+        // Single-quoted strings (with escape handling)
+        "('(?:[^'\\\\]|\\\\.)*')",
+        // Template literals / backtick strings
+        '(`(?:[^`\\\\]|\\\\.)*`)',
+    ].join('|'), 'g'),
+
+    // Obfuscate all comments
+    blurComments(text) {
+        return text.replace(this.COMMENT_PATTERN, (match) => {
+            if (!match || match.length < 2) return match;
+            // Skip if already obfuscated
+            if (Mapper.isFullyObfuscated(match)) return match;
+
+            // Preserve comment markers, obfuscate content
+            // Multi-line /* */
+            if (match.startsWith('/*') && match.endsWith('*/')) {
+                const content = match.slice(2, -2);
+                if (!content.trim()) return match;
+                return `/*${Mapper.get(content.trim(), 'comment')}*/`;
+            }
+            // HTML <!-- -->
+            if (match.startsWith('<!--') && match.endsWith('-->')) {
+                const content = match.slice(4, -3);
+                if (!content.trim()) return match;
+                return `<!--${Mapper.get(content.trim(), 'comment')}-->`;
+            }
+            // PowerShell <# #>
+            if (match.startsWith('<#') && match.endsWith('#>')) {
+                const content = match.slice(2, -2);
+                if (!content.trim()) return match;
+                return `<#${Mapper.get(content.trim(), 'comment')}#>`;
+            }
+            // Single-line comments (// # -- % REM ::)
+            const singleLineMatch = match.match(/^(\s*)(\/\/|#|--|%|REM\s|::)(.*)$/);
+            if (singleLineMatch) {
+                const [, whitespace, marker, content] = singleLineMatch;
+                if (!content.trim()) return match;
+                return `${whitespace}${marker}${Mapper.get(content.trim(), 'comment')}`;
+            }
+
+            return match;
+        });
+    },
+
+    // Obfuscate all strings
+    blurStrings(text) {
+        return text.replace(this.STRING_PATTERN, (match) => {
+            if (!match || match.length < 2) return match;
+
+            const quote = match[0]; // " or ' or `
+            const content = match.slice(1, -1);
+
+            // Skip empty strings
+            if (!content) return match;
+            // Skip if content is already obfuscated
+            if (Mapper.isFullyObfuscated(content)) return match;
+            // Skip strings that look like template expressions ${...} or {...}
+            if (content.includes('${') || (quote === '`' && content.includes('${'))) return match;
+            // Skip very short strings (1-2 chars) - likely format specifiers
+            if (content.length < 3) return match;
+
+            return `${quote}${Mapper.get(content, 'string')}${quote}`;
+        });
+    },
+
+    // ============================================
     // BLUR - Smart pattern-aware single pass
     // ============================================
     blur(text) {
-        return text.replace(this.MEGA_PATTERN, (match,
+        // First pass: obfuscate comments and strings
+        let result = this.blurComments(text);
+        result = this.blurStrings(result);
+
+        // Second pass: apply MEGA_PATTERN for everything else
+        return result.replace(this.MEGA_PATTERN, (match,
             email,
             ipv6_full, ipv6_comp, ipv6_start, ipv6_mixed, ipv4,
             mac,
