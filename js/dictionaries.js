@@ -86,6 +86,10 @@ const Dictionaries = {
             'default', 'custom', 'base', 'abstract', 'virtual', 'override',
             'primary', 'secondary', 'main', 'sub', 'child', 'parent', 'root',
 
+            // Single letters (for camelCase like zIndex, xAxis, yOffset)
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+            'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+
             // Common prepositions/connectors/modifiers
             'of', 'to', 'from', 'with', 'by', 'for', 'in', 'on', 'at', 'as',
             'and', 'or', 'not', 'if', 'else', 'then', 'when', 'while', 'until',
@@ -123,7 +127,32 @@ const Dictionaries = {
             'redux', 'mobx', 'vuex', 'pinia', 'zustand', 'recoil', 'jotai',
             'axios', 'fetch', 'graphql', 'rest', 'websocket', 'socket',
             'jest', 'mocha', 'chai', 'jasmine', 'cypress', 'playwright',
-            'eslint', 'prettier', 'tslint', 'stylelint', 'husky', 'lint'
+            'eslint', 'prettier', 'tslint', 'stylelint', 'husky', 'lint',
+
+            // CSS properties and values
+            'absolute', 'relative', 'fixed', 'sticky', 'static',
+            'block', 'inline', 'flex', 'grid', 'none', 'contents',
+            'cover', 'contain', 'center', 'stretch', 'baseline',
+            'repeat', 'space', 'round', 'wrap', 'nowrap',
+            'auto', 'inherit', 'initial', 'unset', 'revert',
+            'top', 'bottom', 'left', 'right', 'start', 'end',
+            'row', 'column', 'reverse', 'wrap',
+            'bold', 'normal', 'italic', 'underline', 'overline',
+            'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge', 'inset', 'outset',
+            'transparent', 'currentColor', 'white', 'black', 'red', 'green', 'blue',
+            'visible', 'hidden', 'scroll', 'clip', 'ellipsis',
+            'pointer', 'default', 'grab', 'grabbing', 'move', 'crosshair', 'text', 'wait',
+            'ease', 'linear', 'step',
+            'grayscale', 'blur', 'brightness', 'contrast', 'saturate', 'sepia', 'invert', 'opacity', 'hue',
+            'transform', 'translate', 'rotate', 'scale', 'skew', 'matrix', 'perspective',
+            'animation', 'transition', 'keyframes',
+            'hover', 'focus', 'active', 'visited', 'checked', 'disabled', 'before', 'after',
+            'margin', 'padding', 'border', 'outline', 'shadow', 'radius',
+            'width', 'height', 'depth', 'size',
+            'color', 'background', 'font', 'line', 'letter', 'word', 'spacing',
+            'align', 'justify', 'items', 'content', 'self',
+            'overflow', 'display', 'visibility', 'cursor', 'filter', 'backdrop',
+            'important', 'url', 'calc', 'var', 'rgb', 'rgba', 'hsl', 'hsla'
         ];
 
         fallbackWords.forEach(word => {

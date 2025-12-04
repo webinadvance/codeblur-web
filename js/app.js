@@ -22,6 +22,7 @@ class CodeBlur {
         this.styleSelect = document.getElementById('anonStyle');
         this.thresholdSelect = document.getElementById('numberThreshold');
         this.includePrompt = document.getElementById('includePrompt');
+        this.fullStringObfuscation = document.getElementById('fullStringObfuscation');
 
         this.init();
     }
@@ -54,12 +55,18 @@ class CodeBlur {
         if (saved) {
             try { Mapper.load(JSON.parse(saved)); } catch (e) { /* ignore */ }
         }
+
+        const fullStrings = localStorage.getItem('codeblur_full_string_obfuscation');
+        if (fullStrings !== null) {
+            this.fullStringObfuscation.checked = fullStrings === 'true';
+        }
     }
 
     saveState() {
         localStorage.setItem('codeblur_style', this.styleName);
         localStorage.setItem('codeblur_number_threshold', String(this.numberThreshold));
         localStorage.setItem('codeblur_mappings', JSON.stringify(Mapper.save()));
+        localStorage.setItem('codeblur_full_string_obfuscation', String(this.fullStringObfuscation.checked));
     }
 
     // ============================================
@@ -86,6 +93,11 @@ class CodeBlur {
             this.numberThreshold = parseInt(e.target.value, 10);
             this.saveState();
             this.toast(this.numberThreshold === 0 ? 'Numbers: NEVER' : `Numbers: ${this.numberThreshold}+ digits`);
+        };
+
+        this.fullStringObfuscation.onchange = () => {
+            this.saveState();
+            this.toast(this.fullStringObfuscation.checked ? 'Full string obfuscation: ON' : 'Full string obfuscation: OFF');
         };
 
         this.editor.addEventListener('paste', () => this.onPaste());
@@ -170,7 +182,10 @@ class CodeBlur {
         this.saveUndo();
 
         const levelName = Levels.next(this.level);
-        const options = { anonNumbers: this.numberThreshold };
+        const options = {
+            anonNumbers: this.numberThreshold,
+            fullStringObfuscation: this.fullStringObfuscation.checked
+        };
 
         this.editor.value = Levels.execute(levelName, this.editor.value, options);
         this.level++;
@@ -307,13 +322,27 @@ class CodeBlur {
         if (!text) { this.highlight.innerHTML = ''; return; }
 
         let html = this.escapeHtml(text);
-        const sorted = Object.entries(Mapper.mappings).sort((a, b) => b[1].length - a[1].length);
+        const entries = Object.entries(Mapper.mappings);
 
-        for (const [original, obf] of sorted) {
-            const escaped = obf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            html = html.replace(new RegExp(`\\b${escaped}\\b`, 'g'),
-                `<span class="highlight-obfuscated clickable-word" data-original="${this.escapeHtml(original)}" title="${this.escapeHtml(original)}">${obf}</span>`
-            );
+        if (entries.length > 0) {
+            // Build reverse lookup: obfuscated -> original
+            const reverseLookup = Object.fromEntries(entries.map(([orig, obf]) => [obf, orig]));
+
+            // Sort by length descending to match longer tokens first (STR001 before STR00)
+            const sortedObfs = entries.map(([, obf]) => obf).sort((a, b) => b.length - a.length);
+            const escapedObfs = sortedObfs.map(obf => obf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+            // No word boundaries - allows matching consecutive tokens like G001STR001
+            const combinedPattern = new RegExp(`(${escapedObfs.join('|')})`, 'g');
+
+            html = html.replace(combinedPattern, (match) => {
+                const original = reverseLookup[match];
+                if (original) {
+                    const escaped = this.escapeHtml(original);
+                    return `<span class="highlight-obfuscated clickable-word" data-original="${escaped}" title="${escaped}">${match}</span>`;
+                }
+                return match;
+            });
         }
 
         this.highlight.innerHTML = html;

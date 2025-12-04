@@ -39,19 +39,28 @@ const Mapper = {
         return this._reverse;
     },
 
+    // Token pattern: 1-3 uppercase letters + 3 digits (e.g., G001, STR001, NUM001)
+    TOKEN_PATTERN: /[A-Z]{1,3}\d{3}/g,
+
     isObfuscated(word) {
-        return /[A-Z_]+\d{2,}/.test(word);
+        // Check if word contains any obfuscated token (handles consecutive like G001STR001)
+        return /[A-Z]{1,3}\d{3}/.test(word);
     },
 
     isFullyObfuscated(word) {
-        return /^[A-Z_]+\d+$/.test(word);
+        // Check if word is exactly one or more consecutive tokens (e.g., G001 or G001STR001)
+        return /^([A-Z]{1,3}\d{3})+$/.test(word);
     },
 
     calcPercent(text) {
+        // Count individual tokens, not words (handles consecutive tokens)
+        const tokens = text.match(this.TOKEN_PATTERN) || [];
         const words = text.match(/\b[a-zA-Z_][a-zA-Z0-9_]{1,}\b/g) || [];
-        if (words.length === 0) return 0;
-        const obfuscated = words.filter(w => this.isObfuscated(w));
-        return Math.round((obfuscated.length / words.length) * 100);
+        if (words.length === 0 && tokens.length === 0) return 0;
+        // Use token count for percentage (more accurate)
+        const totalIdentifiers = words.filter(w => !this.isFullyObfuscated(w)).length + tokens.length;
+        if (totalIdentifiers === 0) return 0;
+        return Math.round((tokens.length / totalIdentifiers) * 100);
     },
 
     clear() {
@@ -239,10 +248,12 @@ const Transform = {
             if (Mapper.isFullyObfuscated(match)) return match;
 
             // Preserve comment markers, obfuscate content
-            // Multi-line /* */
+            // Multi-line /* */ - SKIP if contains newlines (preserve JSDoc, complex comments)
             if (match.startsWith('/*') && match.endsWith('*/')) {
                 const content = match.slice(2, -2);
                 if (!content.trim()) return match;
+                // Skip multi-line comments (they often contain important docs)
+                if (content.includes('\n')) return match;
                 return `/*${Mapper.get(content.trim(), 'comment')}*/`;
             }
             // HTML <!-- -->
@@ -258,11 +269,11 @@ const Transform = {
                 return `<#${Mapper.get(content.trim(), 'comment')}#>`;
             }
             // Single-line comments (// # -- % REM ::)
-            const singleLineMatch = match.match(/^(\s*)(\/\/|#|--|%|REM\s|::)(.*)$/);
+            const singleLineMatch = match.match(/^(\s*)(\/\/|#|--|%|REM\s|::)(\s*)(.*)$/);
             if (singleLineMatch) {
-                const [, whitespace, marker, content] = singleLineMatch;
+                const [, whitespace, marker, spacing, content] = singleLineMatch;
                 if (!content.trim()) return match;
-                return `${whitespace}${marker}${Mapper.get(content.trim(), 'comment')}`;
+                return `${whitespace}${marker}${spacing}${Mapper.get(content.trim(), 'comment')}`;
             }
 
             return match;
@@ -291,15 +302,24 @@ const Transform = {
     },
 
     // ============================================
-    // BLUR - Smart pattern-aware single pass
+    // BLUR - Clean linear flow
     // ============================================
-    blur(text) {
-        // First pass: obfuscate comments and strings
-        let result = this.blurComments(text);
-        result = this.blurStrings(result);
+    blur(text, options = {}) {
+        const fullStringObfuscation = options.fullStringObfuscation || false;
 
-        // Second pass: apply MEGA_PATTERN for everything else
-        return result.replace(this.MEGA_PATTERN, (match,
+        // Step 1: Protect strings with placeholders (prevents # in strings being treated as comments)
+        // Use \x00\x01N\x01\x00 format - \x01 won't match any pattern (not #, not identifier)
+        const strings = [];
+        let result = text.replace(this.STRING_PATTERN, (match) => {
+            strings.push(match);
+            return `\x00\x01${strings.length - 1}\x01\x00`;
+        });
+
+        // Step 2: Obfuscate comments
+        result = this.blurComments(result);
+
+        // Step 3: Apply MEGA_PATTERN to non-string content
+        result = result.replace(this.MEGA_PATTERN, (match,
             email,
             ipv6_full, ipv6_comp, ipv6_start, ipv6_mixed, ipv4,
             mac,
@@ -359,6 +379,34 @@ const Transform = {
 
             return match;
         });
+
+        // Step 4: Restore strings and apply obfuscation based on mode
+        result = result.replace(/\x00\x01(\d+)\x01\x00/g, (_, idx) => {
+            const original = strings[parseInt(idx)];
+            if (!original || original.length < 2) return original;
+
+            const quote = original[0];
+            const content = original.slice(1, -1);
+
+            // Empty string - keep as is
+            if (!content) return original;
+
+            // Already obfuscated - keep as is
+            if (Mapper.isFullyObfuscated(content)) return original;
+
+            // Template literal with ${} - keep as is (has dynamic content)
+            if (content.includes('${')) return original;
+
+            // Full string obfuscation: entire string becomes one token
+            if (fullStringObfuscation) {
+                return `${quote}${Mapper.get(content, 'string')}${quote}`;
+            }
+
+            // Normal mode: keep string as is (content already processed by MEGA_PATTERN if needed)
+            return original;
+        });
+
+        return result;
     },
 
     // ============================================
@@ -433,23 +481,37 @@ const Transform = {
     removeEmptyLines: (text) => text.replace(/^\s*[\r\n]/gm, '').replace(/\n{3,}/g, '\n\n'),
 
     reveal(text) {
-        const entries = Object.entries(Mapper.mappings).sort((a, b) => b[1].length - a[1].length);
-        let result = text;
-        for (const [original, obf] of entries) {
-            result = this.replaceWord(result, obf, original);
-        }
-        return result;
+        const entries = Object.entries(Mapper.mappings);
+        if (entries.length === 0) return text;
+
+        // Build reverse lookup: obfuscated -> original
+        const reverseLookup = Object.fromEntries(entries.map(([orig, obf]) => [obf, orig]));
+
+        // Sort by length descending to match longer tokens first (STR001 before STR00)
+        const sortedObfs = entries.map(([, obf]) => obf).sort((a, b) => b.length - a.length);
+        const escapedObfs = sortedObfs.map(obf => obf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+        // No lookbehind - allows matching consecutive tokens like G001STR001
+        // Tokens have specific format [A-Z]{1,3}\d{3} so false matches are rare
+        const combinedPattern = new RegExp(`(${escapedObfs.join('|')})`, 'g');
+
+        return text.replace(combinedPattern, (match) => reverseLookup[match] || match);
     },
 
     applyMappings(text) {
         const entries = Object.entries(Mapper.mappings)
-            .filter(([orig]) => !orig.startsWith('//') && !orig.startsWith('/*') && !orig.startsWith('#') && !orig.includes('\n'))
-            .sort((a, b) => b[0].length - a[0].length);
-        let result = text;
-        for (const [original, obf] of entries) {
-            result = this.replaceWord(result, original, obf);
-        }
-        return result;
+            .filter(([orig]) => !orig.startsWith('//') && !orig.startsWith('/*') && !orig.startsWith('#') && !orig.includes('\n'));
+
+        if (entries.length === 0) return text;
+
+        // Build a single regex matching all originals (much faster than iterating)
+        const escapedOriginals = entries.map(([orig]) => orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const combinedPattern = new RegExp(`\\b(${escapedOriginals.join('|')})\\b`, 'g');
+
+        // Create lookup map for O(1) replacement
+        const lookupMap = Object.fromEntries(entries);
+
+        return text.replace(combinedPattern, (match) => lookupMap[match] || match);
     }
 };
 
@@ -462,7 +524,7 @@ const Levels = {
     execute(levelName, text, options = {}) {
         switch (levelName) {
             case 'BLUR':
-                return Transform.removeEmptyLines(Transform.blur(text));
+                return Transform.removeEmptyLines(Transform.blur(text, options));
             case 'ANON':
                 return Transform.anon(text, options.anonNumbers || Config.DEFAULT_NUMBER_THRESHOLD);
             case 'NUKE':
