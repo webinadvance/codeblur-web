@@ -491,11 +491,14 @@ const Transform = {
         const sortedObfs = entries.map(([, obf]) => obf).sort((a, b) => b.length - a.length);
         const escapedObfs = sortedObfs.map(obf => obf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 
-        // No lookbehind - allows matching consecutive tokens like G001STR001
-        // Tokens have specific format [A-Z]{1,3}\d{3} so false matches are rare
-        const combinedPattern = new RegExp(`(${escapedObfs.join('|')})`, 'g');
+        // Use lookbehind/lookahead to:
+        // - Allow consecutive tokens: G001STR001 (digit before uppercase S is OK)
+        // - Prevent matching inside words: mySTR001var (lowercase before/after is NOT OK)
+        // (?<![a-z]) = not preceded by lowercase letter
+        // (?![a-z]) = not followed by lowercase letter
+        const combinedPattern = new RegExp(`(?<![a-z])(${escapedObfs.join('|')})(?![a-z])`, 'g');
 
-        return text.replace(combinedPattern, (match) => reverseLookup[match] || match);
+        return text.replace(combinedPattern, (match, token) => reverseLookup[token] || match);
     },
 
     applyMappings(text) {

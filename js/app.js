@@ -332,10 +332,12 @@ class CodeBlur {
             const sortedObfs = entries.map(([, obf]) => obf).sort((a, b) => b.length - a.length);
             const escapedObfs = sortedObfs.map(obf => obf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 
-            // No word boundaries - allows matching consecutive tokens like G001STR001
-            const combinedPattern = new RegExp(`(${escapedObfs.join('|')})`, 'g');
+            // Use lookbehind/lookahead to allow consecutive tokens (G001STR001)
+            // but prevent matching inside words (mySTR001var)
+            const combinedPattern = new RegExp(`(?<![a-z])(${escapedObfs.join('|')})(?![a-z])`, 'g');
 
-            html = html.replace(combinedPattern, (match) => {
+            html = html.replace(combinedPattern, (match, token) => {
+                match = token; // Use captured group, not full match with lookaround
                 const original = reverseLookup[match];
                 if (original) {
                     const escaped = this.escapeHtml(original);
