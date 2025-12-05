@@ -63,8 +63,8 @@ jobs:
           sed -i "s/const APP_VERSION = '.*'/const APP_VERSION = '$FULL_VERSION'/" sw.js
           sed -i "s/const BUILD_NUMBER = .*/const BUILD_NUMBER = $NEW_BUILD;/" sw.js
 
-          # Update index.html
-          sed -i "s/<span id=\"app-version\">.*<\/span>/<span id=\"app-version\">$FULL_VERSION<\/span>/" index.html
+          # Update index.html (use non-greedy match to avoid eating extra </span> tags)
+          sed -i "s/<span id=\"app-version\">[^<]*<\/span>/<span id=\"app-version\">$FULL_VERSION<\/span>/" index.html
 
           echo "Version bumped to $FULL_VERSION"
 
