@@ -3,6 +3,395 @@
 // 25-143x faster than previous multi-pass architecture
 
 // ============================================
+// FINGERPRINT - AI Watermark/Fingerprint Sanitization
+// Removes invisible Unicode characters, homoglyphs, and
+// other markers that LLMs may embed in generated code
+// ============================================
+const Fingerprint = {
+    // Zero-width and invisible characters (comprehensive list)
+    // Sources: Unicode.org, invisible-characters.com, security research
+    INVISIBLE_CHARS: [
+        // Zero-width characters
+        '\u200B',  // Zero Width Space
+        '\u200C',  // Zero Width Non-Joiner
+        '\u200D',  // Zero Width Joiner
+        '\u200E',  // Left-to-Right Mark
+        '\u200F',  // Right-to-Left Mark
+        '\uFEFF',  // Byte Order Mark (BOM) / Zero Width No-Break Space
+        '\u00AD',  // Soft Hyphen
+
+        // Word joiners and separators
+        '\u2060',  // Word Joiner
+        '\u2061',  // Function Application (invisible operator)
+        '\u2062',  // Invisible Times
+        '\u2063',  // Invisible Separator
+        '\u2064',  // Invisible Plus
+        '\u2065',  // (reserved)
+
+        // Directional formatting
+        '\u202A',  // Left-to-Right Embedding
+        '\u202B',  // Right-to-Left Embedding
+        '\u202C',  // Pop Directional Formatting
+        '\u202D',  // Left-to-Right Override
+        '\u202E',  // Right-to-Left Override
+
+        // Directional isolates
+        '\u2066',  // Left-to-Right Isolate
+        '\u2067',  // Right-to-Left Isolate
+        '\u2068',  // First Strong Isolate
+        '\u2069',  // Pop Directional Isolate
+
+        // Arabic/digit shaping
+        '\u206A',  // Inhibit Symmetric Swapping
+        '\u206B',  // Activate Symmetric Swapping
+        '\u206C',  // Inhibit Arabic Form Shaping
+        '\u206D',  // Activate Arabic Form Shaping
+        '\u206E',  // National Digit Shapes
+        '\u206F',  // Nominal Digit Shapes
+
+        // Mongolian and other invisible
+        '\u180B',  // Mongolian Free Variation Selector One
+        '\u180C',  // Mongolian Free Variation Selector Two
+        '\u180D',  // Mongolian Free Variation Selector Three
+        '\u180E',  // Mongolian Vowel Separator
+
+        // Tags (used for steganography)
+        '\uE0001', // Language Tag
+
+        // Other invisible
+        '\u034F',  // Combining Grapheme Joiner
+        '\u061C',  // Arabic Letter Mark
+        '\u115F',  // Hangul Choseong Filler
+        '\u1160',  // Hangul Jungseong Filler
+        '\u17B4',  // Khmer Vowel Inherent Aq
+        '\u17B5',  // Khmer Vowel Inherent Aa
+        '\u3164',  // Hangul Filler
+        '\uFFA0',  // Halfwidth Hangul Filler
+
+        // Annotation characters
+        '\uFFF9',  // Interlinear Annotation Anchor
+        '\uFFFA',  // Interlinear Annotation Separator
+        '\uFFFB',  // Interlinear Annotation Terminator
+    ],
+
+    // Non-standard spaces (often used as fingerprints)
+    SPECIAL_SPACES: {
+        '\u00A0': ' ',  // Non-Breaking Space → regular space
+        '\u1680': ' ',  // Ogham Space Mark
+        '\u2000': ' ',  // En Quad
+        '\u2001': ' ',  // Em Quad
+        '\u2002': ' ',  // En Space
+        '\u2003': ' ',  // Em Space
+        '\u2004': ' ',  // Three-Per-Em Space
+        '\u2005': ' ',  // Four-Per-Em Space
+        '\u2006': ' ',  // Six-Per-Em Space
+        '\u2007': ' ',  // Figure Space
+        '\u2008': ' ',  // Punctuation Space
+        '\u2009': ' ',  // Thin Space
+        '\u200A': ' ',  // Hair Space
+        '\u202F': ' ',  // Narrow No-Break Space (common in AI output!)
+        '\u205F': ' ',  // Medium Mathematical Space
+        '\u3000': ' ',  // Ideographic Space
+    },
+
+    // Common homoglyphs: visually identical chars from different Unicode blocks
+    // Maps confusable characters to their ASCII equivalents
+    HOMOGLYPHS: {
+        // Cyrillic → Latin (lowercase)
+        '\u0430': 'a',  // Cyrillic Small Letter A
+        '\u0441': 'c',  // Cyrillic Small Letter Es
+        '\u0435': 'e',  // Cyrillic Small Letter Ie
+        '\u04BB': 'h',  // Cyrillic Small Letter Shha
+        '\u0456': 'i',  // Cyrillic Small Letter Byelorussian-Ukrainian I
+        '\u0458': 'j',  // Cyrillic Small Letter Je
+        '\u043E': 'o',  // Cyrillic Small Letter O
+        '\u0440': 'p',  // Cyrillic Small Letter Er
+        '\u0455': 's',  // Cyrillic Small Letter Dze
+        '\u0445': 'x',  // Cyrillic Small Letter Ha
+        '\u0443': 'y',  // Cyrillic Small Letter U
+        '\u04CF': 'l',  // Cyrillic Small Letter Palochka
+
+        // Cyrillic → Latin (uppercase)
+        '\u0410': 'A',  // Cyrillic Capital Letter A
+        '\u0412': 'B',  // Cyrillic Capital Letter Ve
+        '\u0421': 'C',  // Cyrillic Capital Letter Es
+        '\u0415': 'E',  // Cyrillic Capital Letter Ie
+        '\u041D': 'H',  // Cyrillic Capital Letter En
+        '\u0406': 'I',  // Cyrillic Capital Letter Byelorussian-Ukrainian I
+        '\u0408': 'J',  // Cyrillic Capital Letter Je
+        '\u041A': 'K',  // Cyrillic Capital Letter Ka
+        '\u041C': 'M',  // Cyrillic Capital Letter Em
+        '\u041E': 'O',  // Cyrillic Capital Letter O
+        '\u0420': 'P',  // Cyrillic Capital Letter Er
+        '\u0405': 'S',  // Cyrillic Capital Letter Dze
+        '\u0422': 'T',  // Cyrillic Capital Letter Te
+        '\u0425': 'X',  // Cyrillic Capital Letter Ha
+        '\u0423': 'Y',  // Cyrillic Capital Letter U
+
+        // Greek → Latin
+        '\u03B1': 'a',  // Greek Small Letter Alpha
+        '\u03B5': 'e',  // Greek Small Letter Epsilon
+        '\u03B9': 'i',  // Greek Small Letter Iota
+        '\u03BA': 'k',  // Greek Small Letter Kappa
+        '\u03BD': 'v',  // Greek Small Letter Nu
+        '\u03BF': 'o',  // Greek Small Letter Omicron
+        '\u03C1': 'p',  // Greek Small Letter Rho
+        '\u03C5': 'u',  // Greek Small Letter Upsilon
+        '\u03C7': 'x',  // Greek Small Letter Chi
+        '\u0391': 'A',  // Greek Capital Letter Alpha
+        '\u0392': 'B',  // Greek Capital Letter Beta
+        '\u0395': 'E',  // Greek Capital Letter Epsilon
+        '\u0397': 'H',  // Greek Capital Letter Eta
+        '\u0399': 'I',  // Greek Capital Letter Iota
+        '\u039A': 'K',  // Greek Capital Letter Kappa
+        '\u039C': 'M',  // Greek Capital Letter Mu
+        '\u039D': 'N',  // Greek Capital Letter Nu
+        '\u039F': 'O',  // Greek Capital Letter Omicron
+        '\u03A1': 'P',  // Greek Capital Letter Rho
+        '\u03A4': 'T',  // Greek Capital Letter Tau
+        '\u03A7': 'X',  // Greek Capital Letter Chi
+        '\u03A5': 'Y',  // Greek Capital Letter Upsilon
+        '\u0396': 'Z',  // Greek Capital Letter Zeta
+
+        // Extended Latin variants
+        '\u0501': 'd',  // Cyrillic Small Letter Komi De
+        '\u0578': 'n',  // Armenian Small Letter Vo
+
+        // Typographic variants (common in AI output)
+        '\u2014': '-',  // Em Dash → hyphen
+        '\u2013': '-',  // En Dash → hyphen
+        '\u2010': '-',  // Hyphen
+        '\u2011': '-',  // Non-Breaking Hyphen
+        '\u2012': '-',  // Figure Dash
+        '\u2015': '-',  // Horizontal Bar
+        '\u2018': "'",  // Left Single Quotation Mark
+        '\u2019': "'",  // Right Single Quotation Mark
+        '\u201A': "'",  // Single Low-9 Quotation Mark
+        '\u201B': "'",  // Single High-Reversed-9 Quotation Mark
+        '\u201C': '"',  // Left Double Quotation Mark
+        '\u201D': '"',  // Right Double Quotation Mark
+        '\u201E': '"',  // Double Low-9 Quotation Mark
+        '\u201F': '"',  // Double High-Reversed-9 Quotation Mark
+        '\u2032': "'",  // Prime
+        '\u2033': '"',  // Double Prime
+        '\u2035': "'",  // Reversed Prime
+        '\u2036': '"',  // Reversed Double Prime
+        '\u00AB': '"',  // Left-Pointing Double Angle Quotation Mark
+        '\u00BB': '"',  // Right-Pointing Double Angle Quotation Mark
+        '\u2039': "'",  // Single Left-Pointing Angle Quotation Mark
+        '\u203A': "'",  // Single Right-Pointing Angle Quotation Mark
+        '\u02BC': "'",  // Modifier Letter Apostrophe
+        '\u02BB': "'",  // Modifier Letter Turned Comma
+        '\u0060': "'",  // Grave Accent (when used as apostrophe)
+        '\u00B4': "'",  // Acute Accent
+
+        // Mathematical operators that look like letters
+        '\u2212': '-',  // Minus Sign
+        '\u2217': '*',  // Asterisk Operator
+        '\u2215': '/',  // Division Slash
+        '\u2044': '/',  // Fraction Slash
+        '\u2236': ':',  // Ratio
+
+        // Fullwidth ASCII (common in CJK contexts)
+        '\uFF01': '!',  // Fullwidth Exclamation Mark
+        '\uFF02': '"',  // Fullwidth Quotation Mark
+        '\uFF03': '#',  // Fullwidth Number Sign
+        '\uFF04': '$',  // Fullwidth Dollar Sign
+        '\uFF05': '%',  // Fullwidth Percent Sign
+        '\uFF06': '&',  // Fullwidth Ampersand
+        '\uFF07': "'",  // Fullwidth Apostrophe
+        '\uFF08': '(',  // Fullwidth Left Parenthesis
+        '\uFF09': ')',  // Fullwidth Right Parenthesis
+        '\uFF0A': '*',  // Fullwidth Asterisk
+        '\uFF0B': '+',  // Fullwidth Plus Sign
+        '\uFF0C': ',',  // Fullwidth Comma
+        '\uFF0D': '-',  // Fullwidth Hyphen-Minus
+        '\uFF0E': '.',  // Fullwidth Full Stop
+        '\uFF0F': '/',  // Fullwidth Solidus
+        '\uFF1A': ':',  // Fullwidth Colon
+        '\uFF1B': ';',  // Fullwidth Semicolon
+        '\uFF1C': '<',  // Fullwidth Less-Than Sign
+        '\uFF1D': '=',  // Fullwidth Equals Sign
+        '\uFF1E': '>',  // Fullwidth Greater-Than Sign
+        '\uFF1F': '?',  // Fullwidth Question Mark
+        '\uFF20': '@',  // Fullwidth Commercial At
+        '\uFF3B': '[',  // Fullwidth Left Square Bracket
+        '\uFF3C': '\\', // Fullwidth Reverse Solidus
+        '\uFF3D': ']',  // Fullwidth Right Square Bracket
+        '\uFF3E': '^',  // Fullwidth Circumflex Accent
+        '\uFF3F': '_',  // Fullwidth Low Line
+        '\uFF40': '`',  // Fullwidth Grave Accent
+        '\uFF5B': '{',  // Fullwidth Left Curly Bracket
+        '\uFF5C': '|',  // Fullwidth Vertical Line
+        '\uFF5D': '}',  // Fullwidth Right Curly Bracket
+        '\uFF5E': '~',  // Fullwidth Tilde
+    },
+
+    // Build regex patterns once for performance
+    _invisiblePattern: null,
+    _spacePattern: null,
+    _homoglyphPattern: null,
+
+    _buildPatterns() {
+        if (!this._invisiblePattern) {
+            // Invisible characters pattern
+            const invisibleEscaped = this.INVISIBLE_CHARS
+                .map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                .join('|');
+            this._invisiblePattern = new RegExp(invisibleEscaped, 'g');
+
+            // Special spaces pattern
+            const spaceChars = Object.keys(this.SPECIAL_SPACES).join('');
+            this._spacePattern = new RegExp(`[${spaceChars}]`, 'g');
+
+            // Homoglyphs pattern
+            const homoglyphChars = Object.keys(this.HOMOGLYPHS).join('');
+            this._homoglyphPattern = new RegExp(`[${homoglyphChars}]`, 'g');
+        }
+    },
+
+    /**
+     * Sanitize text by removing AI fingerprints/watermarks
+     * @param {string} text - Input text to sanitize
+     * @param {Object} options - Sanitization options
+     * @param {boolean} options.removeInvisible - Remove invisible characters (default: true)
+     * @param {boolean} options.normalizeSpaces - Normalize special spaces (default: true)
+     * @param {boolean} options.replaceHomoglyphs - Replace homoglyphs with ASCII (default: true)
+     * @param {boolean} options.useNFKC - Apply NFKC normalization (default: true)
+     * @returns {Object} { text: string, stats: { invisible: number, spaces: number, homoglyphs: number } }
+     */
+    sanitize(text, options = {}) {
+        const opts = {
+            removeInvisible: true,
+            normalizeSpaces: true,
+            replaceHomoglyphs: true,
+            useNFKC: true,
+            ...options
+        };
+
+        this._buildPatterns();
+
+        const stats = {
+            invisible: 0,
+            spaces: 0,
+            homoglyphs: 0
+        };
+
+        let result = text;
+
+        // Step 1: NFKC normalization (handles many compatibility characters)
+        if (opts.useNFKC && typeof result.normalize === 'function') {
+            const before = result;
+            result = result.normalize('NFKC');
+            // Can't count exact changes from normalization, but it handles:
+            // - Fullwidth → ASCII
+            // - Ligatures → component letters
+            // - Compatibility decompositions
+        }
+
+        // Step 2: Remove invisible characters
+        if (opts.removeInvisible) {
+            result = result.replace(this._invisiblePattern, (match) => {
+                stats.invisible++;
+                return '';
+            });
+
+            // Also remove variation selectors (U+FE00 - U+FE0F) and (U+E0100 - U+E01EF)
+            result = result.replace(/[\uFE00-\uFE0F]/g, (match) => {
+                stats.invisible++;
+                return '';
+            });
+        }
+
+        // Step 3: Normalize special spaces
+        if (opts.normalizeSpaces) {
+            result = result.replace(this._spacePattern, (match) => {
+                stats.spaces++;
+                return this.SPECIAL_SPACES[match] || ' ';
+            });
+        }
+
+        // Step 4: Replace homoglyphs with ASCII equivalents
+        if (opts.replaceHomoglyphs) {
+            result = result.replace(this._homoglyphPattern, (match) => {
+                stats.homoglyphs++;
+                return this.HOMOGLYPHS[match] || match;
+            });
+        }
+
+        return { text: result, stats };
+    },
+
+    /**
+     * Quick check if text contains any fingerprint characters
+     * @param {string} text - Text to check
+     * @returns {boolean} True if fingerprints detected
+     */
+    hasFingerprints(text) {
+        this._buildPatterns();
+        return this._invisiblePattern.test(text) ||
+               this._spacePattern.test(text) ||
+               this._homoglyphPattern.test(text) ||
+               /[\uFE00-\uFE0F]/.test(text);
+    },
+
+    /**
+     * Get human-readable report of fingerprints found
+     * @param {string} text - Text to analyze
+     * @returns {Object} Detailed report of found fingerprints
+     */
+    analyze(text) {
+        this._buildPatterns();
+        const found = {
+            invisible: [],
+            spaces: [],
+            homoglyphs: [],
+            total: 0
+        };
+
+        // Find invisible characters
+        let match;
+        const invisibleRegex = new RegExp(this._invisiblePattern.source, 'g');
+        while ((match = invisibleRegex.exec(text)) !== null) {
+            const char = match[0];
+            const code = char.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+            found.invisible.push({ char, code: `U+${code}`, position: match.index });
+            found.total++;
+        }
+
+        // Find special spaces
+        const spaceRegex = new RegExp(this._spacePattern.source, 'g');
+        while ((match = spaceRegex.exec(text)) !== null) {
+            const char = match[0];
+            const code = char.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+            found.spaces.push({ char, code: `U+${code}`, position: match.index });
+            found.total++;
+        }
+
+        // Find homoglyphs
+        const homoglyphRegex = new RegExp(this._homoglyphPattern.source, 'g');
+        while ((match = homoglyphRegex.exec(text)) !== null) {
+            const char = match[0];
+            const code = char.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+            const ascii = this.HOMOGLYPHS[char];
+            found.homoglyphs.push({ char, code: `U+${code}`, ascii, position: match.index });
+            found.total++;
+        }
+
+        // Find variation selectors
+        const varSelectorRegex = /[\uFE00-\uFE0F]/g;
+        while ((match = varSelectorRegex.exec(text)) !== null) {
+            const char = match[0];
+            const code = char.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+            found.invisible.push({ char, code: `U+${code}`, position: match.index });
+            found.total++;
+        }
+
+        return found;
+    }
+};
+
+// ============================================
 // MAPPER - State management (backward compatible API)
 // ============================================
 const Mapper = {

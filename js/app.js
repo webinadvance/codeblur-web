@@ -23,6 +23,9 @@ class CodeBlur {
         this.thresholdSelect = document.getElementById('numberThreshold');
         this.includePrompt = document.getElementById('includePrompt');
         this.fullStringObfuscation = document.getElementById('fullStringObfuscation');
+        this.fingerprintIndicator = document.getElementById('fingerprintIndicator');
+        this.fingerprintCount = document.getElementById('fingerprintCount');
+        this.lastFingerprintCount = 0;
 
         this.init();
     }
@@ -121,11 +124,27 @@ class CodeBlur {
         this.level = 0;
         this.updateBlurBtn();
         setTimeout(() => {
-            this.editor.value = Transform.applyMappings(this.editor.value);
-            this.updateUI();
+            // Auto-sanitize fingerprints on paste
+            const { text, stats } = Fingerprint.sanitize(this.editor.value);
+            const totalCleaned = stats.invisible + stats.spaces + stats.homoglyphs;
+            this.editor.value = Transform.applyMappings(text);
+
             if (wasEmpty) {
                 this.editor.scrollTop = 0;
                 this.highlight.scrollTop = 0;
+            }
+
+            // Update UI and show fingerprint indicator
+            this.updateBlurBtn();
+            this.updatePercent();
+            this.updateHighlight();
+            this.updateCounts();
+
+            if (totalCleaned > 0) {
+                this.updateFingerprintIndicator(totalCleaned);
+                this.toast(`Sanitized ${totalCleaned} AI fingerprint(s)`);
+            } else {
+                this.updateFingerprintIndicator();
             }
         }, 0);
     }
@@ -222,8 +241,18 @@ class CodeBlur {
     copy() {
         const text = this.editor.value;
         if (!text) return this.toast('Nothing to copy', 'error');
-        navigator.clipboard.writeText(text)
-            .then(() => this.toast('Copied to clipboard'))
+        // Final sanitization before copy to ensure clean output
+        const { text: cleanText, stats } = Fingerprint.sanitize(text);
+        const totalCleaned = stats.invisible + stats.spaces + stats.homoglyphs;
+        navigator.clipboard.writeText(cleanText)
+            .then(() => {
+                if (totalCleaned > 0) {
+                    this.updateFingerprintIndicator(totalCleaned);
+                    this.toast(`Copied (cleaned ${totalCleaned} fingerprint(s))`);
+                } else {
+                    this.toast('Copied to clipboard');
+                }
+            })
             .catch(() => this.toast('Failed to copy', 'error'));
     }
 
@@ -231,13 +260,24 @@ class CodeBlur {
         const code = this.editor.value;
         if (!code.trim()) return this.toast('No code to send', 'error');
 
-        let prompt = code;
+        // Sanitize before sending to Claude
+        const { text: cleanCode, stats } = Fingerprint.sanitize(code);
+        const totalCleaned = stats.invisible + stats.spaces + stats.homoglyphs;
+
+        let prompt = cleanCode;
         if (this.includePrompt.checked) {
-            prompt = `/*\n * THIS CODE HAS BEEN OBFUSCATED\n * Variable names, strings, and identifiers have been anonymized.\n * Treat all placeholder names as-is - do not attempt to guess or restore original names.\n */\n\n${code}`;
+            prompt = `/*\n * THIS CODE HAS BEEN OBFUSCATED\n * Variable names, strings, and identifiers have been anonymized.\n * Treat all placeholder names as-is - do not attempt to guess or restore original names.\n */\n\n${cleanCode}`;
         }
 
         navigator.clipboard.writeText(prompt)
-            .then(() => { window.open('https://claude.ai/new', '_blank'); this.toast('Code copied - opening Claude'); })
+            .then(() => {
+                window.open('https://claude.ai/new', '_blank');
+                if (totalCleaned > 0) {
+                    this.toast(`Copied (cleaned ${totalCleaned} fingerprint(s)) - opening Claude`);
+                } else {
+                    this.toast('Code copied - opening Claude');
+                }
+            })
             .catch(() => this.toast('Failed to copy', 'error'));
     }
 
@@ -300,6 +340,40 @@ class CodeBlur {
         this.updatePercent();
         this.updateHighlight();
         this.updateCounts();
+        this.updateFingerprintIndicator();
+    }
+
+    // Update fingerprint indicator based on current text
+    updateFingerprintIndicator(justCleaned = 0) {
+        const text = this.editor.value;
+        const hasFingerprints = text && Fingerprint.hasFingerprints(text);
+
+        // Update count display
+        if (justCleaned > 0) {
+            // Just cleaned some fingerprints
+            this.fingerprintCount.textContent = `−${justCleaned}`;
+            this.fingerprintIndicator.classList.remove('active');
+            this.fingerprintIndicator.classList.add('cleaned');
+            this.fingerprintIndicator.title = `Removed ${justCleaned} AI fingerprint(s)`;
+
+            // Reset after animation
+            setTimeout(() => {
+                this.fingerprintIndicator.classList.remove('cleaned');
+                this.updateFingerprintIndicator();
+            }, 2000);
+        } else if (hasFingerprints) {
+            // Fingerprints detected in current text
+            const analysis = Fingerprint.analyze(text);
+            this.fingerprintCount.textContent = analysis.total;
+            this.fingerprintIndicator.classList.add('active');
+            this.fingerprintIndicator.classList.remove('cleaned');
+            this.fingerprintIndicator.title = `${analysis.total} AI fingerprint(s) detected - will be cleaned on copy`;
+        } else {
+            // Clean
+            this.fingerprintCount.textContent = '0';
+            this.fingerprintIndicator.classList.remove('active', 'cleaned');
+            this.fingerprintIndicator.title = 'No AI fingerprints detected';
+        }
     }
 
     updateBlurBtn() {
