@@ -88,6 +88,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
           script: |
             cd /root/src/codeblur-web
             git pull origin master
