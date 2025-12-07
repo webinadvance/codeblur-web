@@ -269,16 +269,29 @@ class CodeBlur {
             prompt = `/*\n * THIS CODE HAS BEEN OBFUSCATED\n * Variable names, strings, and identifiers have been anonymized.\n * Treat all placeholder names as-is - do not attempt to guess or restore original names.\n */\n\n${cleanCode}`;
         }
 
+        // Use Claude's URL parameter to pre-fill the prompt
+        const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
+
+        // Also copy to clipboard as fallback
         navigator.clipboard.writeText(prompt)
             .then(() => {
-                window.open('https://claude.ai/new', '_blank');
+                // Try to open in incognito/private window
+                // Note: Most browsers block this, so it falls back to normal window
+                const win = window.open(claudeUrl, '_blank', 'incognito=yes,private=yes');
+                if (!win) {
+                    window.open(claudeUrl, '_blank');
+                }
                 if (totalCleaned > 0) {
-                    this.toast(`Copied (cleaned ${totalCleaned} fingerprint(s)) - opening Claude`);
+                    this.toast(`Opening Claude with code (cleaned ${totalCleaned} fingerprint(s))`);
                 } else {
-                    this.toast('Code copied - opening Claude');
+                    this.toast('Opening Claude with code');
                 }
             })
-            .catch(() => this.toast('Failed to copy', 'error'));
+            .catch(() => {
+                // If clipboard fails, still try to open Claude with URL param
+                window.open(claudeUrl, '_blank');
+                this.toast('Opening Claude with code');
+            });
     }
 
     // ============================================
